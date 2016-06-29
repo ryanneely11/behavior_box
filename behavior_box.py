@@ -340,10 +340,10 @@ class App(Frame):
 					buzzer()
 					self.trial_init = False
 					##decide whether to prime the port
-					if np.random.random() <= int(self.reward_rate_entry.get())
+					if np.random.random() <= int(self.reward_rate_entry.get()):
 						self.primed = True
 				"""check for nose poke"""
-				if if self.primed == True and port.name == "nose_poke" and port.state == True:
+				if self.primed == True and port.name == "nose_poke" and port.state == True:
 					self.trial_success = True
 					self.primed = False
 				"""check to see if light should be on"""
