@@ -11,11 +11,9 @@ to interface with the behavior box.
 """
 TODO:
 
--figure out how to log actions (maybe just get the system timestamp and save an HDF5 file?)
-
--figure out the timing flow:
-	when box becomes active, self.startTime = time.time()
-	need a way to decide when the cue light/tone comes on
+-trial does not restart after nose poke
+-logging function records events continuously while
+	they happen
 
 """ 
 
@@ -48,6 +46,7 @@ outputs = {
 "C3":23, #C3 = bitmask 8
 "C5":24, #C5 = bitmask 32
 "C7":25, #C7 = bitmask 128
+
 "buzz_1":6, ##push pin for buzzer
 "buzz_2":5  ##pull pin for buzzer
 }
@@ -64,6 +63,7 @@ for key in outputs.keys():
 
 ##set the pull up resistor for the levers
 pi.setup([17,27],pi.IN, pull_up_down = pi.PUD_DOWN)
+
 
 """some functions to deliver outputs"""
 
@@ -87,7 +87,7 @@ def buzzer2(samples = 75):
 		pi.output(outputs["buzz_2"], True)
 		time.sleep(.001)
 		pi.output(outputs["buzz_2"], False)
-	time.sleep(0.2)
+	time.sleep(0.1)
 	for i in range(samples):
 		pi.output(outputs["buzz_1"], True)
 		time.sleep(.001)
@@ -318,9 +318,9 @@ class App(Frame):
 		
 
 		###entry boxes for setting reward parameters
-		self.reward_time_entry = entryBox(self, "Reward time", "time in sec", 3,2)
-		self.reward_rate_entry = entryBox(self, "Reward chance", "enter decimal",5,2)
-		self.ITI_entry = entryBox(self, "inter-trial-interval", "seconds",7,2)
+		self.reward_time_entry = entryBox(self, "Reward time", "1.0", 3,2)
+		self.reward_rate_entry = entryBox(self, "Reward chance", "0.75",5,2)
+		self.ITI_entry = entryBox(self, "inter-trial-interval", "6",7,2)
 
 		#other objects for setting task params
 		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"), wrap = False, command = self.setLevers)
@@ -340,7 +340,7 @@ class App(Frame):
 		elif self.selectLever.get() == "bottom_lever":
 			self.rewarded = "bottom_lever"
 			self.unrewarded = "top_lever"
-		logAction(time.time(), "rewarded="+self.selectLever.get())
+		self.logAction(time.time(), "rewarded="+self.selectLever.get())
 
 	def counterReset(self):
 		"""function to reset the displayed counters"""
@@ -351,14 +351,14 @@ class App(Frame):
 		"""function to set the start time clock"""
 		##set the start time
 		self.startTime = time.time()
-		self.newTrialStart = self.startTime+(abs(np.random.randn)*int(self.ITI_entry.get()))
+		self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
 		self.waiting = True
 		self.setLevers()
 		self.counterReset()
 
 	def logAction(self, timestamp, label):
 		"""function to log the timestamp of a particular action"""
-		self.fileout.write(timestamp-self.startTime+","+label)
+		self.fileout.write(str(timestamp-self.startTime)+","+label)
 		self.fileout.write("\n")
 
 	def initTrial(self):
@@ -375,7 +375,7 @@ class App(Frame):
 		lightswitch("off")
 		buzzer()
 		if port_name == self.rewarded:
-			if np.random.random() <= int(self.reward_rate_entry.get()):
+			if np.random.random() <= float(self.reward_rate_entry.entryString.get()):
 				self.primed = True
 				self.logAction(time.time(),"reward_primed")
 		else:
@@ -384,7 +384,7 @@ class App(Frame):
 	def resetTrial(self):
 		"""a function to reset the trial"""
 		self.trialEnded = time.time()
-		self.newTrialStart = self.trialEnded+(abs(np.random.randn)*int(self.ITI_entry.get()))
+		self.newTrialStart = self.trialEnded+(abs(np.random.randn)*float(self.ITI_entry.entryString.get()))
 		self.waiting = True
 
 	def checkTimer(self):
@@ -416,12 +416,12 @@ class App(Frame):
 				##top lever
 				if port.name == "top_lever" and port.state ==True:
 					self.logAction(time.time(), "top_lever")
-					if trial_running:
+					if self.trial_running:
 						self.endTrial(port.name)
 				##bottom lever
 				if port.name == "bottom_lever" and port.state == True:
 					self.logAction(time.time(), "bottom_lever")
-					if trial_running:
+					if self.trial_running:
 						self.endTrial(port.name)
 				##nose poke 
 				if port.name == "nose_poke" and port.state == True:
