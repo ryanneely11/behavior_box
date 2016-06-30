@@ -277,15 +277,16 @@ class GPIO(Frame):
 		return pi.input(self.pin)
 
 
+
 class entryBox(object):
 	"""Tkinter object that contains some editable text"""
 	def __init__(self, homeFrame, labelText, preset):
 		self.homeFrame = homeFrame
 		self.labelText = labelText
 		self.preset = preset
-		self.entryString = Tk.StringVar()
-		self.entryObj = Tk.Entry(homeFrame, textvariable = self.entryString)
-		self.title = Tk.Label(self.homeFrame, text = self.labelText)
+		self.entryString = StringVar()
+		self.entryObj = Entry(homeFrame, textvariable = self.entryString)
+		self.title = Label(self.homeFrame, text = self.labelText)
 		self.entryString.set(self.preset)
 		self.title.pack(side = 'top')
 		self.entryObj.pack(side = 'top')
@@ -322,9 +323,9 @@ class App(Frame):
 		self.ITI_entry = entryBox(self, "inter-trial-interval", "seconds")
 
 		#other objects for setting task params
-		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"), wrap = False, command = setLevers)
-		self.setActive = Checkbutton(self,text="Activate box",variable=self.active, command = activate)
-		self.resetCounts = Button(self, text = "Reset Counts", command = counterReset)
+		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"), wrap = False, command = self.setLevers)
+		self.setActive = Checkbutton(self,text="Activate box",variable=self.active, command = self.activate)
+		self.resetCounts = Button(self, text = "Reset Counts", command = self.counterReset)
 
 		self.update()
 
@@ -333,7 +334,7 @@ class App(Frame):
 		if self.selectLever.get() == "top_lever":
 			self.rewarded = "top_lever"
 			self.unrewarded = "bottom_lever"
-		elif self.selectLever.get() == "bottom_lever"
+		elif self.selectLever.get() == "bottom_lever":
 			self.rewarded = "bottom_lever"
 			self.unrewarded = "top_lever"
 		logAction(time.time(), "rewarded="+self.selectLever.get())
@@ -384,7 +385,7 @@ class App(Frame):
 		self.waiting = True
 
 	def checkTimer(self):
-		if self.waiting = True:
+		if self.waiting == True:
 			if time.time() >= self.newTrialStart:
 				self.initTrial()
 
