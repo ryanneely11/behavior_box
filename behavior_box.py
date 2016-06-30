@@ -134,6 +134,13 @@ class GPIO(Frame):
 
 		self.set_state.config(state=DISABLED)
 
+		##the total counts
+		self.count = 0
+		self.countVar = StringVar()
+		self.countVar.set(str(self.count))
+		self.countLabel = Label(self, textvariable = self.countVar)
+		self.countLabel.pack(side = "top")
+
 		if (self.current_mode.get() == "Input"):
 			self.set_state.config(state=DISABLED)
 		elif (self.current_mode.get() == "Output"):
@@ -168,6 +175,7 @@ class GPIO(Frame):
 		self.state = self.cmdState.get()
 		self.updateLED()
 		self.updatePin()
+		self.incrementCount()
 
 	def updatePin(self):
 		"""Sets the GPIO port state to the current state"""
@@ -182,7 +190,8 @@ class GPIO(Frame):
 		if self.isInput():
 			state = pi.input(self.pin)
 			self.state = state
-			self.updateLED()	
+			self.updateLED()
+			self.incrementCount()	
 
 	def outputOn(self):
 		"""If the pin is an output pin, turn the output on, check the box, 
@@ -190,6 +199,7 @@ class GPIO(Frame):
 		if self.isOutput():
 			self.set_state.select()
 			self.set_state.invoke()
+			self.incrementCount()
 
 	def outputOff(self):
 		"""If the pin is an output pin, turn the output off, uncheck the box, 
@@ -198,6 +208,29 @@ class GPIO(Frame):
 			self.set_state.deselect()
 			self.set_state.invoke()
 
+	def incrementCount(self):
+		"""a function to update the count of events"""
+		self.count +=1
+		self.countVar.set(str(self.count))
+
+	def resetCount(self):
+		"""a function to reset the counter"""
+		self.count = 0
+		self.countVar.set(str(self.count))
+
+
+class entryBox(object):
+	"""Tkinter object that contains some editable text"""
+	def __init__(self, homeFrame, labelText, preset):
+		self.homeFrame = homeFrame
+		self.labelText = labelText
+		self.preset = preset
+		self.entryString = Tk.StringVar()
+		self.entryObj = Tk.Entry(homeFrame, textvariable = self.entryString)
+		self.title = Tk.Label(self.homeFrame, text = self.labelText)
+		self.entryString.set(self.preset)
+		self.title.pack(side = 'top')
+		self.entryObj.pack(side = 'top')
 
 class App(Frame):
 	def __init__(self,parent=None, **kw):
