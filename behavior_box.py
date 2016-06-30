@@ -239,13 +239,18 @@ class GPIO(Frame):
 		if self.isInput():
 			state = pi.input(self.pin)
 			if state != self.state and state == True:
+				self.state = state
+				self.updateLED()
 				self.incrementCount()
 			##case where state hasn't changed
 			elif state == self.state and state == True:
 				while pi.input(self.pin) == 1:
 					time.sleep(0.05)
-			self.state = state
-			self.updateLED()
+				self.state = 0
+				self.updateLED()
+			elif state == 0:
+				self.state = 0
+				self.updateLED()
 	
 
 	def outputOn(self):
