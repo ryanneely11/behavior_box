@@ -11,7 +11,6 @@ to interface with the behavior box.
 """
 TODO:
 
--trial does not restart after nose poke
 -logging function records events continuously while
 	they happen
 
@@ -427,7 +426,7 @@ class App(Frame):
 				if port.name == "nose_poke" and port.state == True:
 					self.logAction(time.time(), "nose_poke")
 					if self.trial_running == False and self.primed == True:
-						h20reward(int(self.reward_time_entry.get()))
+						h20reward(float(self.reward_time_entry.entryString.get()))
 						self.logAction(time.time(), "reward_delivered")
 						self.primed = False
 						self.resetTrial()
