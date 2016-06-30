@@ -162,18 +162,11 @@ class GPIO(Frame):
 					 -1:'Unknown'}                     
 		return functions[pi.gpio_function(pin)]
 
-## Future Functionality
-##    def setPullUp(self,pullup):
-##        """Defines the GPIO as having a pull up resistor so the input
-##        state is inverted when read
-##        setPullUp(True) - Pin is pulled up
-##        setPullUP(False) - Pin is not pulled up"""
-##        self.pullup = pullup
-
 	def toggleCmdState(self):
 		"""Reads the current state of the checkbox, updates LED widget
 		and sets the gpio port state."""
 		self.state = self.cmdState.get()
+		self.updateLED()
 		self.updatePin()
 
 	def updatePin(self):
@@ -189,15 +182,22 @@ class GPIO(Frame):
 		if self.isInput():
 			state = pi.input(self.pin)
 			self.state = state
-			self.updateLED()
+			self.updateLED()	
 
-	def updateOutput(self):
-		"""Updates the current state if the pin is an input and sets the LED"""
+	def outputOn(self):
+		"""If the pin is an output pin, turn the output on, check the box, 
+		and change the LED"""
 		if self.isOutput():
-			state = pi.input(self.pin)
-			self.state = state
-			self.updateLED()
-		
+			self.set_state.select()
+			self.set_state.invoke()
+
+	def outputOff(self):
+		"""If the pin is an output pin, turn the output off, uncheck the box, 
+		and change the LED"""
+		if self.isOutput():
+			self.set_state.deselect()
+			self.set_state.invoke()
+
 
 class App(Frame):
 	def __init__(self,parent=None, **kw):
