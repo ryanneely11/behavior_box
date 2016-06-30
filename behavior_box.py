@@ -527,8 +527,10 @@ class App2(Frame):
 		buzzer()
 		self.waiting = False
 		if np.random.random() <= float(self.reward_rate_entry.entryString.get()):
-				self.primed = True
-				self.logAction(time.time(),"reward_primed")
+			self.primed = True
+			self.logAction(time.time(),"reward_primed")
+		else:
+			self.logAction(time.time(), "reward_idle")
 
 	def resetTrial(self):
 		"""a function to reset the trial"""
@@ -588,8 +590,9 @@ class App2(Frame):
 		self._timer = self.after(20,self.update)
 
 def train(filename = None):
-	if filename is not None:
-		global FILEPATH = filename
+	global FILEPATH
+	if filename != None:
+		FILEPATH = filename
 	root = Tk()
 	root.title("Rat box")
 	a = App(root)
@@ -600,8 +603,9 @@ def train(filename = None):
 	root.mainloop()
 
 def mag_train(filename = None):
-	if filename is not None:
-		global FILEPATH = filename
+	global FILEPATH
+	if filename != None:
+		FILEPATH = filename
 	root = Tk()
 	root.title("Rat box")
 	a = App2(root)
