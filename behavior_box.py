@@ -139,7 +139,7 @@ class GPIO(Frame):
 		self.countVar = StringVar()
 		self.countVar.set(str(self.count))
 		self.countLabel = Label(self, textvariable = self.countVar)
-		self.countLabel.pack(side = "top")
+		self.countLabel.grid(column=4,row=0)
 
 		if (self.current_mode.get() == "Input"):
 			self.set_state.config(state=DISABLED)
@@ -175,7 +175,9 @@ class GPIO(Frame):
 		self.state = self.cmdState.get()
 		self.updateLED()
 		self.updatePin()
-		self.incrementCount()
+		##only update count if the output is being turned on
+		if self.state == True:
+			self.incrementCount()
 
 	def updatePin(self):
 		"""Sets the GPIO port state to the current state"""
@@ -189,9 +191,13 @@ class GPIO(Frame):
 		"""Updates the current state if the pin is an input and sets the LED"""
 		if self.isInput():
 			state = pi.input(self.pin)
+			new_input = False
+			if state != self.state and state == True:
+				new_input = True
 			self.state = state
 			self.updateLED()
-			self.incrementCount()	
+			if new_input:
+				self.incrementCount()	
 
 	def outputOn(self):
 		"""If the pin is an output pin, turn the output on, check the box, 
@@ -261,7 +267,6 @@ class App(Frame):
 		"""Cycles through the assigned ports and updates them based on the GPIO input"""
 		for port in self.ports:
 			port.updateInput()
-			port.updateOutput()
 					
 	def update(self):
 		"""Runs every 20ms to update the state of the GPIO inputs"""
@@ -271,7 +276,7 @@ class App(Frame):
 
 def main():
 	root = Tk()
-	root.title("Raspberry Pi GPIO")
+	root.title("Rat box")
 	a = App(root)
 	a.grid()
 	"""When the window is closed, run the onClose function."""
