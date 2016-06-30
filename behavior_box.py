@@ -59,6 +59,7 @@ for key in inputs.keys():
 
 for key in outputs.keys():
 	pi.setup(outputs[key], pi.OUT)
+	pi.output(outputs[key],False)
 
 ##set the pull up resistor for the levers
 pi.setup([17,27],pi.IN, pull_up_down = pi.PUD_DOWN)
@@ -353,14 +354,11 @@ class App(Frame):
 	def activate(self):
 		"""function to set the start time clock"""
 		##set the start time
-		if self.active == 1:
-			self.startTime = time.time()
-			self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
-			self.waiting = True
-			self.setLevers()
-			self.counterReset()
-		if self.active == 0:
-			self.logAction(time.time(), "session over")
+		self.startTime = time.time()
+		self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
+		self.waiting = True
+		self.setLevers()
+		self.counterReset()
 
 	def logAction(self, timestamp, label):
 		"""function to log the timestamp of a particular action"""
