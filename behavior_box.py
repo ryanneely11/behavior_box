@@ -28,6 +28,9 @@ import math
 import time
 import numpy as np
 
+##font style
+myFont = ("Helvetica", 18)
+
 ##file path to save data
 FILEPATH = "/home/pi/Desktop/test.txt"
 
@@ -45,10 +48,12 @@ outputs = {
 "C3":23, #C3 = bitmask 8
 "C5":24, #C5 = bitmask 32
 "C7":25, #C7 = bitmask 128
-
 "buzz_1":6, ##push pin for buzzer
 "buzz_2":5  ##pull pin for buzzer
 }
+
+##outputs to exclude from the GUI (no point to have them):
+exclude_out = ["C1", "C3", "C5", "C7", "buzz_1", "buzz_2"]
 
 ##set up the GPIO board to the appropriate settings
 pi.setmode(pi.BCM) #to use the BCM pin mapping
@@ -160,19 +165,19 @@ class GPIO(Frame):
 			self.name = "GPIO %02d" % (self.pin)
 		else:
 			self.name = name
-		Frame.__init__(self,parent,width=150,height=20,relief=SUNKEN,bd=1,padx=5,pady=5)
+		Frame.__init__(self,parent,width=250,height=150,relief=SUNKEN,bd=1,padx=5,pady=5)
 		##Future capability
 		##self.bind('<Double-Button-1>', lambda e, s=self: self._configurePin(e.y))
 		self.parent = parent
 		self.configure(**kw)
 		self.state = False
 		self.cmdState = IntVar()
-		self.Label = Label(self,text=self.name)
+		self.Label = Label(self,text=self.name, font = myFont)
 		self.current_mode = StringVar()
 		self.current_mode.set(self.getPinFunctionName())
-		self.mode_sel = Label(self,textvariable=self.current_mode)
-		self.set_state = Checkbutton(self,text="High/Low",variable=self.cmdState,command=self.toggleCmdState)
-		self.led = LED(self,20)
+		self.mode_sel = Label(self,textvariable=self.current_mode, font = myFont)
+		self.set_state = Checkbutton(self,text="High/Low",font = myFont,variable=self.cmdState,command=self.toggleCmdState)
+		self.led = LED(self,50)
 		self.Label.grid(column=0,row=0)
 		self.mode_sel.grid(column=1,row=0)
 		self.set_state.grid(column=2,row=0)
@@ -185,7 +190,7 @@ class GPIO(Frame):
 		self.count = 0
 		self.countVar = StringVar()
 		self.countVar.set(str(self.count))
-		self.countLabel = Label(self, textvariable = self.countVar)
+		self.countLabel = Label(self, textvariable = self.countVar, font = myFont)
 		self.countLabel.grid(column=4,row=0)
 
 		if (self.current_mode.get() == "Input"):
@@ -292,8 +297,8 @@ class entryBox(object):
 		self.labelText = labelText
 		self.preset = preset
 		self.entryString = StringVar()
-		self.entryObj = Entry(homeFrame, textvariable = self.entryString)
-		self.title = Label(self.homeFrame, text = self.labelText)
+		self.entryObj = Entry(homeFrame, textvariable = self.entryString, font = myFont)
+		self.title = Label(self.homeFrame, text = self.labelText, font = myFont)
 		self.entryString.set(self.preset)
 		self.title.grid(row = grid_row, column = grid_col)
 		self.entryObj.grid(row = grid_row+1, column = grid_col)
@@ -320,23 +325,23 @@ class App(Frame):
 		for n, key in enumerate(inputs.keys()):
 			self.ports.append(GPIO(self,pin=inputs[key],name=key))
 			self.ports[-1].grid(row=n, column=0)
-		for n, key in enumerate(outputs.keys()):
+		for n, key in enumerate([n for n in outputs.keys() if n not in exclude_out]):
 			self.ports.append(GPIO(self,pin=outputs[key],name=key))
-			self.ports[-1].grid(row=n,column=1)
+			self.ports[-1].grid(row=n+3,column=0)
 		
 
 		###entry boxes for setting reward parameters
-		self.reward_time_entry = entryBox(self, "Reward time", "1.0", 3,2)
-		self.reward_rate_entry = entryBox(self, "Reward chance", "0.75",5,2)
-		self.ITI_entry = entryBox(self, "inter-trial-interval", "6",7,2)
+		self.reward_time_entry = entryBox(self, "Reward time", "1.0", 1,1)
+		self.reward_rate_entry = entryBox(self, "Reward chance", "0.75",3,1)
+		self.ITI_entry = entryBox(self, "inter-trial-interval", "6",5,1)
 
 		#other objects for setting task params
-		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"), wrap = False, command = self.setLevers)
-		self.selectLever.grid(row = 0, column = 2)
-		self.setActive = Checkbutton(self,text="Activate box",variable=self.active, command = self.activate)
-		self.setActive.grid(row = 1, column = 2)
-		self.resetCounts = Button(self, text = "Reset Counts", command = self.counterReset)
-		self.resetCounts.grid(row = 2, column = 2)
+		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"),font=myFont, wrap = False, command = self.setLevers)
+		self.selectLever.grid(row = 0, column = 1)
+		self.setActive = Checkbutton(self,text="Activate box",font = myFont,variable=self.active, command = self.activate)
+		self.setActive.grid(row = 5, column = 0)
+		self.resetCounts = Button(self, text = "Reset Counts", font=myFont, command = self.counterReset)
+		self.resetCounts.grid(row = 6, column = 0)
 
 		self.update()
 
@@ -460,7 +465,7 @@ def main():
 	a.grid()
 	"""When the window is closed, run the onClose function."""
 	root.protocol("WM_DELETE_WINDOW",a.onClose)
-	root.resizable(False,False)
+	root.resizable(True,True)
 	root.mainloop()
    
 
