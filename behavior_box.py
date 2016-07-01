@@ -6,15 +6,14 @@ ryan neely
 A script to control the raspberry pi that is used
 to interface with the behavior box.
 
-GUI application adapted from GitHub user scotty3785
 """
 
 """
 TODO:
 -create a separate script that will run the actual task.
-	integrate a button to start/stop the task a la BMI_GUI
+	I think this could actually be integrated into the update function
 
--Add GUI variables to control reward values, intervals, etc
+-figure out how to log actions (maybe just get the system timestamp and save an HDF5 file?)
 
 -Add a button to reset counts
 """ 
@@ -33,8 +32,8 @@ import time
 ##define port numbers
 inputs = {
 "nose_poke":26,
-"lever_1":17,
-"lever_2":27
+"top_lever":17,
+"bottom_lever":27
 }
 
 outputs = {
@@ -252,6 +251,8 @@ class App(Frame):
 		Frame.__init__(self,parent,**kw)
 		self.parent = parent
 		self.ports = []
+		self.active = IntVar()
+		self.primed = False
 		## Get the RPI Hardware dependant list of GPIO
 		#gpio = self.getRPIVersionGPIO()
 		for n, key in enumerate(inputs.keys()):
@@ -260,10 +261,22 @@ class App(Frame):
 		for n, key in enumerate(outputs.keys()):
 			self.ports.append(GPIO(self,pin=outputs[key],name=key))
 			self.ports[-1].grid(row=n,column=1)
+		
+
+		###entry boxes for setting reward parameters
+		self.reward_time_entry = entryBox(self, "Reward time", "time in sec")
+		self.reward_rate_entry = entryBox(self, "Reward percentile", "enter percent")
+
+		#other objects for setting task params
+		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"), wrap = False)
+		self.setActive = Checkbutton(self,text="Activate box",variable=self.active)
+		self.resetCounts = Button(self, text = "Reset Counts", command = counterReset)
+
 		self.update()
 
-		self.reward_time_entry = entryBox(self, "Reward time", "time in sec")
-		self.
+	def counterReset(self):
+		for port in self.ports:
+			port.resetCount()
 
 	def onClose(self):
 		"""This is used to run the Rpi.GPIO cleanup() method to return pins to be an input
@@ -279,12 +292,18 @@ class App(Frame):
 		"""Cycles through the assigned ports and updates them based on the GPIO input"""
 		for port in self.ports:
 			port.updateInput()
+			##check to see if the box is active
+			if self.active.get():
+				##if the box is active, check to see if the 
+				##current port is both the rewarded lever AND active
+				if port.name == self.selectLever.get() and port.state = True:
+					##prime the water port
+
 					
 	def update(self):
 		"""Runs every 20ms to update the state of the GPIO inputs"""
 		self.readStates()
 		self._timer = self.after(20,self.update)
-		
 
 def main():
 	root = Tk()
