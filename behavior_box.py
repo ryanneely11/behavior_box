@@ -14,8 +14,6 @@ TODO:
 -create a separate script that will run the actual task.
 	integrate a button to start/stop the task a la BMI_GUI
 
--Add text boxes that count the number of presses/nose port entries etc.
-
 -Add GUI variables to control reward values, intervals, etc
 
 -Add a button to reset counts
@@ -30,6 +28,7 @@ else:
 	
 import RPi.GPIO as pi
 import math
+import time
 
 ##define port numbers
 inputs = {
@@ -44,7 +43,9 @@ outputs = {
 "C1":12, #C1 = bitmask 2 (on TDT)
 "C3":23, #C3 = bitmask 8
 "C5":24, #C5 = bitmask 32
-"C7":25 #C7 = bitmask 128
+"C7":25, #C7 = bitmask 128
+"buzz_1":6, ##push pin for buzzer
+"buzz_2":5  ##pull pin for buzzer
 }
 
 ##set up the GPIO board to the appropriate settings
@@ -60,7 +61,15 @@ for key in outputs.keys():
 ##set the pull up resistor for the levers
 pi.setup([17,27],pi.IN, pull_up_down = pi.PUD_DOWN)
 
-
+def buzzer(samples = 75):
+	"""a function to generate a brief buzzer tone"""
+	for i in range(samples):
+		pi.output(outputs["buzz_1"], True)
+		time.sleep(.001)
+		pi.output(outputs["buzz_1"], False)
+		pi.output(outputs["buzz_2"], True)
+		time.sleep(.001)
+		pi.output(outputs["buzz_2"], False)
 
 ###gui stuff###
 
@@ -252,6 +261,9 @@ class App(Frame):
 			self.ports.append(GPIO(self,pin=outputs[key],name=key))
 			self.ports[-1].grid(row=n,column=1)
 		self.update()
+
+		self.reward_time_entry = entryBox(self, "Reward time", "time in sec")
+		self.
 
 	def onClose(self):
 		"""This is used to run the Rpi.GPIO cleanup() method to return pins to be an input
