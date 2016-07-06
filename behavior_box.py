@@ -28,6 +28,7 @@ else:
 import RPi.GPIO as pi
 import math
 import time
+import numpy as np
 
 ##define port numbers
 inputs = {
@@ -60,6 +61,8 @@ for key in outputs.keys():
 ##set the pull up resistor for the levers
 pi.setup([17,27],pi.IN, pull_up_down = pi.PUD_DOWN)
 
+"""some functions to deliver outputs"""
+
 def buzzer(samples = 75):
 	"""a function to generate a brief buzzer tone"""
 	for i in range(samples):
@@ -69,6 +72,13 @@ def buzzer(samples = 75):
 		pi.output(outputs["buzz_2"], True)
 		time.sleep(.001)
 		pi.output(outputs["buzz_2"], False)
+	return 0
+
+def h20reward(secs = 3):
+	pi.output(outputs["h20"], True)
+	time.sleep(secs)
+	pi.output(outputs["h20"], False)
+	return 0
 
 ###gui stuff###
 
@@ -232,6 +242,11 @@ class GPIO(Frame):
 		self.count = 0
 		self.countVar.set(str(self.count))
 
+	def getState(self):
+		"""returns on or off state; useful for checking
+			the state of an output port"""
+		return pi.input(self.pin)
+
 
 class entryBox(object):
 	"""Tkinter object that contains some editable text"""
@@ -251,8 +266,10 @@ class App(Frame):
 		Frame.__init__(self,parent,**kw)
 		self.parent = parent
 		self.ports = []
-		self.active = IntVar()
-		self.primed = False
+		self.active = IntVar() ##is the program running?
+		self.trial_init = False ##has a trial been signaled?
+		self.trial_success = False ##check to see if a reward should be delivered
+		self.primed = False ##is the reward port primed?
 		## Get the RPI Hardware dependant list of GPIO
 		#gpio = self.getRPIVersionGPIO()
 		for n, key in enumerate(inputs.keys()):
@@ -265,7 +282,7 @@ class App(Frame):
 
 		###entry boxes for setting reward parameters
 		self.reward_time_entry = entryBox(self, "Reward time", "time in sec")
-		self.reward_rate_entry = entryBox(self, "Reward percentile", "enter percent")
+		self.reward_rate_entry = entryBox(self, "Reward chance", "enter decimal")
 
 		#other objects for setting task params
 		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"), wrap = False)
@@ -294,10 +311,34 @@ class App(Frame):
 			port.updateInput()
 			##check to see if the box is active
 			if self.active.get():
+				"""check for active lever"""
 				##if the box is active, check to see if the 
-				##current port is both the rewarded lever AND active
-				if port.name == self.selectLever.get() and port.state = True:
+				##current port is both the rewarded lever AND active AND a trial has been signaled
+				if self.trial_init == True and port.name == self.selectLever.get() and port.state == True:
+					##play sound
+					##signal state
 					##prime the water port
+					buzzer()
+					self.trial_init = False
+					##decide whether to prime the port
+					if np.random.random() <= int(self.reward_rate_entry.get())
+						self.primed = True
+				"""check for nose poke"""
+				if if self.primed == True and port.name == "nose_poke" and port.state == True:
+					self.trial_success = True
+					self.primed = False
+				"""check to see if light should be on"""
+				if self.trial_init == True and port.name == "led" and port.getState() == False:
+					port.outputOn()
+				"""check to see if light should be off"""
+				if self.trial_init == False and port.name == "led" and port.getState() == True:
+					port.outputOff
+				"""check to see if there has be a successful trial"""
+				if self.trial_success == True and port.name == "h20":
+					port.outputOn()
+					time.sleep(int(self.reward_time_entry.get()))
+					port.outputOff()
+					self.trial_success = False
 
 					
 	def update(self):
