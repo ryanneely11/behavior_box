@@ -10,12 +10,12 @@ to interface with the behavior box.
 
 """
 TODO:
--create a separate script that will run the actual task.
-	I think this could actually be integrated into the update function
 
 -figure out how to log actions (maybe just get the system timestamp and save an HDF5 file?)
 
--Add a button to reset counts
+-figure out the timing flow:
+	when box becomes active, self.startTime = time.time()
+	need a way to decide when the cue light/tone comes on
 """ 
 
 import sys
@@ -65,6 +65,25 @@ pi.setup([17,27],pi.IN, pull_up_down = pi.PUD_DOWN)
 
 def buzzer(samples = 75):
 	"""a function to generate a brief buzzer tone"""
+	for i in range(samples):
+		pi.output(outputs["buzz_1"], True)
+		time.sleep(.001)
+		pi.output(outputs["buzz_1"], False)
+		pi.output(outputs["buzz_2"], True)
+		time.sleep(.001)
+		pi.output(outputs["buzz_2"], False)
+	return 0
+
+def buzzer2(samples = 75):
+	"""a function to generate a brief buzzer tone"""
+	for i in range(samples):
+		pi.output(outputs["buzz_1"], True)
+		time.sleep(.001)
+		pi.output(outputs["buzz_1"], False)
+		pi.output(outputs["buzz_2"], True)
+		time.sleep(.001)
+		pi.output(outputs["buzz_2"], False)
+	time.sleep(0.2)
 	for i in range(samples):
 		pi.output(outputs["buzz_1"], True)
 		time.sleep(.001)
