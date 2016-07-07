@@ -97,6 +97,17 @@ def buzzer2(samples = 75):
 		pi.output(outputs["buzz_2"], False)
 	return 0
 
+def h20reward(duration):
+	pi.output(outputs['h20'], True)
+	time.sleep(duration)
+	pi.output(outputs['h20'], False)
+
+def lightswitch(state):
+	if state == "on":
+		pi.output(outputs['led'], True)
+	elif state == "off":
+		pi.output(outputs['led'], False)
+
 
 ###gui stuff###
 
@@ -283,14 +294,17 @@ class App(Frame):
 	def __init__(self,parent=None, **kw):
 		Frame.__init__(self,parent,**kw)
 		self.parent = parent
+		"""state variables"""
 		self.ports = []
-		self.startTime = None
+		self.startTime = None ##timestamp that training starts; all times relative to this
 		self.active = IntVar() ##is the program running?
-		self.trial_init = False ##has a trial been signaled?
-		self.trial_success = False ##check to see if a reward should be delivered
+		self.trial_running = False ##has a trial been signaled?
 		self.primed = False ##is the reward port primed?
 		self.rewarded = None
 		self.unrewarded = None
+		self.waiting = False
+		self.trialEnded = None
+		self.newTrialStart = None
 		self.fileout = open(FILEPATH, 'w')##file to save the timestamps
 		## Get the RPI Hardware dependant list of GPIO
 		#gpio = self.getRPIVersionGPIO()
@@ -305,6 +319,7 @@ class App(Frame):
 		###entry boxes for setting reward parameters
 		self.reward_time_entry = entryBox(self, "Reward time", "time in sec")
 		self.reward_rate_entry = entryBox(self, "Reward chance", "enter decimal")
+		self.ITI_entry = entryBox(self, "inter-trial-interval", "seconds")
 
 		#other objects for setting task params
 		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"), wrap = False, command = setLevers)
@@ -332,6 +347,8 @@ class App(Frame):
 		"""function to set the start time clock"""
 		##set the start time
 		self.startTime = time.time()
+		self.newTrialStart = self.startTime+(abs(np.random.randn)*int(self.ITI_entry.get()))
+		self.waiting = True
 		self.setLevers()
 		self.counterReset()
 
@@ -339,6 +356,37 @@ class App(Frame):
 		"""function to log the timestamp of a particular action"""
 		self.fileout.write(timestamp-self.startTime+","+label)
 		self.fileout.write("\n")
+
+	def initTrial(self):
+		"""function to start a new trial"""
+		self.logAction(time.time(), "trial_begin")
+		self.trial_running = True
+		lightswitch("on")
+		buzzer2()
+		self.waiting = False
+
+	def endTrial(self, port_name):
+		"""function to end a trial"""
+		self.trial_running = False
+		lightswitch("off")
+		buzzer()
+		if port_name == self.rewarded:
+			if np.random.random() <= int(self.reward_rate_entry.get()):
+				self.primed = True
+				self.logAction(time.time(),"reward_primed")
+		else:
+			self.logAction(time.time(),"reward_idle")
+
+	def resetTrial(self):
+		"""a function to reset the trial"""
+		self.trialEnded = time.time()
+		self.newTrialStart = self.trialEnded+(abs(np.random.randn)*int(self.ITI_entry.get()))
+		self.waiting = True
+
+	def checkTimer(self):
+		if self.waiting = True:
+			if time.time() >= self.newTrialStart:
+				self.initTrial()
 
 
 	def onClose(self):
@@ -358,58 +406,27 @@ class App(Frame):
 			port.updateInput()
 			##check to see if the box is active
 			if self.active.get():
-				"""check for active lever"""
-				##if the box is active, check to see if the 
-				##current port is both the rewarded lever AND active AND a trial has been signaled
+				##check timing stuff
+				self.checkTimer()
+				"""check for active inputs and log them"""
+				##top lever
 				if port.name == "top_lever" and port.state ==True:
-					##log the press 
 					self.logAction(time.time(), "top_lever")
-					if self.trial_init and port.name == self.rewarded:
-						##play sound
-						##signal state
-						##prime the water port
-						buzzer()
-						self.trial_init = False
-						self.logAction(time.time(), "rewarded_lever")
-						##decide whether to prime the port
-						if np.random.random() <= int(self.reward_rate_entry.get()):
-							self.primed = True
-							self.logAction(time.time(), "primed")
-				if port.name == "bottom_lever" and port.state ==True:
-					##log the press 
+					if trial_running:
+						self.endTrial(port.name)
+				##bottom lever
+				if port.name == "bottom_lever" and port.state == True:
 					self.logAction(time.time(), "bottom_lever")
-					if self.trial_init and port.name == self.rewarded:
-						##play sound
-						##signal state
-						##prime the water port
-						buzzer()
-						self.trial_init = False
-						self.logAction(time.time(), "rewarded_lever")
-						##decide whether to prime the port
-						if np.random.random() <= int(self.reward_rate_entry.get()):
-							self.primed = True
-							self.logAction(time.time(), "primed")
-				"""check for nose poke"""
+					if trial_running:
+						self.endTrial(port.name)
+				##nose poke 
 				if port.name == "nose_poke" and port.state == True:
 					self.logAction(time.time(), "nose_poke")
-					if self.primed == True
-						self.trial_success = True
-						self.logAction(time.time(), "success")
+					if self.primed:
+						h20reward(int(self.reward_time_entry.get()))
+						self.logAction(time.time(), "reward_delivered")
 						self.primed = False
-				"""check to see if light should be on"""
-				if self.trial_init == True and port.name == "led" and port.getState() == False:
-					port.outputOn()
-				"""check to see if light should be off"""
-				if self.trial_init == False and port.name == "led" and port.getState() == True:
-					port.outputOff
-				"""check to see if there has be a successful trial"""
-				if self.trial_success == True and port.name == "h20":
-					port.outputOn()
-					self.logAction(time.time(), "reward_on")
-					time.sleep(int(self.reward_time_entry.get()))
-					port.outputOff()
-					self.logAction(time.time(), "reward_off")
-					self.trial_success = False
+						self.resetTrial()
 
 					
 	def update(self):
