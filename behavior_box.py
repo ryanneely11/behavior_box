@@ -280,7 +280,7 @@ class GPIO(Frame):
 
 class entryBox(object):
 	"""Tkinter object that contains some editable text"""
-	def __init__(self, homeFrame, labelText, preset):
+	def __init__(self, homeFrame, labelText, preset, grid_row, grid_col):
 		self.homeFrame = homeFrame
 		self.labelText = labelText
 		self.preset = preset
@@ -288,8 +288,8 @@ class entryBox(object):
 		self.entryObj = Entry(homeFrame, textvariable = self.entryString)
 		self.title = Label(self.homeFrame, text = self.labelText)
 		self.entryString.set(self.preset)
-		self.title.pack(side = 'top')
-		self.entryObj.pack(side = 'top')
+		self.title.grid(row = grid_row, column = grid_col)
+		self.entryObj.grid(row = grid_row, column = grid_col)
 
 class App(Frame):
 	def __init__(self,parent=None, **kw):
@@ -318,14 +318,17 @@ class App(Frame):
 		
 
 		###entry boxes for setting reward parameters
-		self.reward_time_entry = entryBox(self, "Reward time", "time in sec")
-		self.reward_rate_entry = entryBox(self, "Reward chance", "enter decimal")
-		self.ITI_entry = entryBox(self, "inter-trial-interval", "seconds")
+		self.reward_time_entry = entryBox(self, "Reward time", "time in sec", 3,2)
+		self.reward_rate_entry = entryBox(self, "Reward chance", "enter decimal",4,2)
+		self.ITI_entry = entryBox(self, "inter-trial-interval", "seconds",5,2)
 
 		#other objects for setting task params
 		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"), wrap = False, command = self.setLevers)
+		self.selectLever.grid(row = 0, column = 2)
 		self.setActive = Checkbutton(self,text="Activate box",variable=self.active, command = self.activate)
+		self.setActive.grid(row = 1, column = 2)
 		self.resetCounts = Button(self, text = "Reset Counts", command = self.counterReset)
+		self.resetCounts.grid(row = 2, column = 2)
 
 		self.update()
 
