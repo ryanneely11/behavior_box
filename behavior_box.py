@@ -384,7 +384,7 @@ class App(Frame):
 	def resetTrial(self):
 		"""a function to reset the trial"""
 		self.trialEnded = time.time()
-		self.newTrialStart = self.trialEnded+(abs(np.random.randn)*float(self.ITI_entry.entryString.get()))
+		self.newTrialStart = self.trialEnded+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
 		self.waiting = True
 
 	def checkTimer(self):
@@ -426,10 +426,13 @@ class App(Frame):
 				##nose poke 
 				if port.name == "nose_poke" and port.state == True:
 					self.logAction(time.time(), "nose_poke")
-					if self.primed:
+					if self.trial_running == False and self.primed == True:
 						h20reward(int(self.reward_time_entry.get()))
 						self.logAction(time.time(), "reward_delivered")
 						self.primed = False
+						self.resetTrial()
+					elif self.trial_running == False:
+						self.logAction(time.time(), "unrewarded_entry")
 						self.resetTrial()
 
 					
