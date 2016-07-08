@@ -353,12 +353,15 @@ class App(Frame):
 
 	def activate(self):
 		"""function to set the start time clock"""
-		##set the start time
-		self.startTime = time.time()
-		self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
-		self.waiting = True
-		self.setLevers()
-		self.counterReset()
+		if self.active.get() == True:
+			##set the start time
+			self.startTime = time.time()
+			self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
+			self.waiting = True
+			self.setLevers()
+			self.counterReset()
+		elif self.active.get() == False:
+			self.logAction(time.time(), "session_end")
 
 	def logAction(self, timestamp, label):
 		"""function to log the timestamp of a particular action"""
@@ -434,7 +437,7 @@ class App(Frame):
 				##nose poke 
 				if port.name == "nose_poke" and port.state == True:
 					#self.logAction(time.time(), "nose_poke")
-					if self.trial_running == False and self.primed == True:
+					if self.trial_running == False and self.primed == True and self.waiting == False:
 						h20reward(float(self.reward_time_entry.entryString.get()))
 						self.logAction(time.time(), "rewarded_poke")
 						self.primed = False
