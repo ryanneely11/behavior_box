@@ -289,7 +289,7 @@ class entryBox(object):
 		self.title = Label(self.homeFrame, text = self.labelText)
 		self.entryString.set(self.preset)
 		self.title.grid(row = grid_row, column = grid_col)
-		self.entryObj.grid(row = grid_row, column = grid_col)
+		self.entryObj.grid(row = grid_row+1, column = grid_col)
 
 class App(Frame):
 	def __init__(self,parent=None, **kw):
@@ -319,8 +319,8 @@ class App(Frame):
 
 		###entry boxes for setting reward parameters
 		self.reward_time_entry = entryBox(self, "Reward time", "time in sec", 3,2)
-		self.reward_rate_entry = entryBox(self, "Reward chance", "enter decimal",4,2)
-		self.ITI_entry = entryBox(self, "inter-trial-interval", "seconds",5,2)
+		self.reward_rate_entry = entryBox(self, "Reward chance", "enter decimal",5,2)
+		self.ITI_entry = entryBox(self, "inter-trial-interval", "seconds",7,2)
 
 		#other objects for setting task params
 		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"), wrap = False, command = self.setLevers)
