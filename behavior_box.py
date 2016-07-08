@@ -306,6 +306,10 @@ class App(Frame):
 		self.trialEnded = None
 		self.newTrialStart = None
 		self.fileout = open(FILEPATH, 'w')##file to save the timestamps
+		self.lastLogEvent = None
+		self.lastLogTime = None ##variablea to store the last logged data
+							##in order to prevent logging the same event 
+							##continuously
 		## Get the RPI Hardware dependant list of GPIO
 		#gpio = self.getRPIVersionGPIO()
 		for n, key in enumerate(inputs.keys()):
@@ -357,8 +361,12 @@ class App(Frame):
 
 	def logAction(self, timestamp, label):
 		"""function to log the timestamp of a particular action"""
-		self.fileout.write(str(timestamp-self.startTime)+","+label)
-		self.fileout.write("\n")
+		#make sure this action hasn't already been logged
+		if self.lastLogEvent != label or timestamp-self.lastLogTime > 1:
+			log = str(timestamp-self.startTime)+","+label+"\n"
+			self.fileout.write(log)
+			self.lastLogEvent = label
+			self.lastLogTime = timestamp
 
 	def initTrial(self):
 		"""function to start a new trial"""
