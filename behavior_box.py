@@ -353,11 +353,14 @@ class App(Frame):
 	def activate(self):
 		"""function to set the start time clock"""
 		##set the start time
-		self.startTime = time.time()
-		self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
-		self.waiting = True
-		self.setLevers()
-		self.counterReset()
+		if self.active == 1:
+			self.startTime = time.time()
+			self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
+			self.waiting = True
+			self.setLevers()
+			self.counterReset()
+		if self.active == 0:
+			self.logAction(time.time(), "session over")
 
 	def logAction(self, timestamp, label):
 		"""function to log the timestamp of a particular action"""
@@ -432,14 +435,14 @@ class App(Frame):
 						self.endTrial(port.name)
 				##nose poke 
 				if port.name == "nose_poke" and port.state == True:
-					self.logAction(time.time(), "nose_poke")
+					#self.logAction(time.time(), "nose_poke")
 					if self.trial_running == False and self.primed == True:
 						h20reward(float(self.reward_time_entry.entryString.get()))
-						self.logAction(time.time(), "reward_delivered")
+						self.logAction(time.time(), "rewarded_poke")
 						self.primed = False
 						self.resetTrial()
 					elif self.trial_running == False:
-						self.logAction(time.time(), "unrewarded_entry")
+						self.logAction(time.time(), "unrewarded_poke")
 						self.resetTrial()
 
 					
