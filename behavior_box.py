@@ -238,13 +238,15 @@ class GPIO(Frame):
 		"""Updates the current state if the pin is an input and sets the LED"""
 		if self.isInput():
 			state = pi.input(self.pin)
-			new_input = False
 			if state != self.state and state == True:
-				new_input = True
+				self.incrementCount()
+			##case where state hasn't changed
+			elif state == self.state and state == True:
+				while pi.input(self.pin) == 1:
+					time.sleep(0.05)
 			self.state = state
 			self.updateLED()
-			if new_input:
-				self.incrementCount()	
+	
 
 	def outputOn(self):
 		"""If the pin is an output pin, turn the output on, check the box, 
@@ -307,10 +309,7 @@ class App(Frame):
 		self.trialEnded = None
 		self.newTrialStart = None
 		self.fileout = open(FILEPATH, 'w')##file to save the timestamps
-		self.lastLogEvent = None
-		self.lastLogTime = None ##variablea to store the last logged data
-							##in order to prevent logging the same event 
-							##continuously
+
 		## Get the RPI Hardware dependant list of GPIO
 		#gpio = self.getRPIVersionGPIO()
 		for n, key in enumerate(inputs.keys()):
@@ -366,11 +365,8 @@ class App(Frame):
 	def logAction(self, timestamp, label):
 		"""function to log the timestamp of a particular action"""
 		#make sure this action hasn't already been logged
-		if self.lastLogEvent != label or timestamp-self.lastLogTime > 1:
-			log = str(timestamp-self.startTime)+","+label+"\n"
-			self.fileout.write(log)
-			self.lastLogEvent = label
-			self.lastLogTime = timestamp
+		log = str(timestamp-self.startTime)+","+label+"\n"
+		self.fileout.write(log)
 
 	def initTrial(self):
 		"""function to start a new trial"""
