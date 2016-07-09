@@ -458,7 +458,136 @@ class App(Frame):
 		self.readStates()
 		self._timer = self.after(20,self.update)
 
-def main():
+class App2(Frame):
+	def __init__(self,parent=None, **kw):
+		Frame.__init__(self,parent,**kw)
+		self.parent = parent
+		"""state variables"""
+		self.ports = []
+		self.startTime = None ##timestamp that training starts; all times relative to this
+		self.active = IntVar() ##is the program running?
+		self.trial_running = False ##has a trial been signaled?
+		self.primed = False ##is the reward port primed?
+		self.waiting = False
+		self.trialEnded = None
+		self.newTrialStart = None
+		self.fileout = open(FILEPATH, 'w')##file to save the timestamps
+
+		## Get the RPI Hardware dependant list of GPIO
+		#gpio = self.getRPIVersionGPIO()
+		for n, key in enumerate(inputs.keys()):
+			self.ports.append(GPIO(self,pin=inputs[key],name=key))
+			self.ports[-1].grid(row=n, column=0)
+		for n, key in enumerate([n for n in outputs.keys() if n not in exclude_out]):
+			self.ports.append(GPIO(self,pin=outputs[key],name=key))
+			self.ports[-1].grid(row=n+3,column=0)
+		
+
+		###entry boxes for setting reward parameters
+		self.reward_time_entry = entryBox(self, "Reward time", "1.0", 1,1)
+		self.reward_rate_entry = entryBox(self, "Reward chance", "0.75",3,1)
+		self.ITI_entry = entryBox(self, "inter-trial-interval", "6",5,1)
+
+		#other objects for setting task params
+		self.setActive = Checkbutton(self,text="Activate box",font = myFont,variable=self.active, command = self.activate)
+		self.setActive.grid(row = 5, column = 0)
+		self.resetCounts = Button(self, text = "Reset Counts", font=myFont, command = self.counterReset)
+		self.resetCounts.grid(row = 6, column = 0)
+
+		self.update()
+
+
+	def counterReset(self):
+		"""function to reset the displayed counters"""
+		for port in self.ports:
+			port.resetCount()
+
+	def activate(self):
+		"""function to set the start time clock"""
+		if self.active.get() == True:
+			##set the start time
+			self.startTime = time.time()
+			self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
+			self.waiting = True
+			self.counterReset()
+		elif self.active.get() == False:
+			self.logAction(time.time(), "session_end")
+
+	def logAction(self, timestamp, label):
+		"""function to log the timestamp of a particular action"""
+		#make sure this action hasn't already been logged
+		log = str(timestamp-self.startTime)+","+label+"\n"
+		self.fileout.write(log)
+
+	def initTrial(self):
+		"""function to start a new trial"""
+		self.logAction(time.time(), "trial_begin")
+		self.trial_running = True
+		lightswitch("on")
+		buzzer()
+		self.waiting = False
+		if np.random.random() <= float(self.reward_rate_entry.entryString.get()):
+				self.primed = True
+				self.logAction(time.time(),"reward_primed")
+
+	def resetTrial(self):
+		"""a function to reset the trial"""
+		self.trialEnded = time.time()
+		lightswitch("off")
+		self.newTrialStart = self.trialEnded+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
+		self.waiting = True
+
+	def checkTimer(self):
+		if self.waiting == True:
+			if time.time() >= self.newTrialStart:
+				self.initTrial()
+
+
+	def onClose(self):
+		"""This is used to run the Rpi.GPIO cleanup() method to return pins to be an input
+		and then destory the app and its parent."""
+		self.fileout.close()
+		try:
+			pi.cleanup()
+		except RuntimeWarning as e:
+			print(e)
+		self.destroy()
+		self.parent.destroy()
+
+	def readStates(self):
+		"""Cycles through the assigned ports and updates them based on the GPIO input"""
+		for port in self.ports:
+			port.updateInput()
+			##check to see if the box is active
+			if self.active.get():
+				##check timing stuff
+				self.checkTimer()
+				"""check for active inputs and log them"""
+				##top lever
+				if port.name == "top_lever" and port.state ==True:
+					self.logAction(time.time(), "top_lever")
+				##bottom lever
+				if port.name == "bottom_lever" and port.state == True:
+					self.logAction(time.time(), "bottom_lever")
+				##nose poke 
+				if port.name == "nose_poke" and port.state == True:
+					#self.logAction(time.time(), "nose_poke")
+					if self.primed == True and self.waiting == False:
+						h20reward(float(self.reward_time_entry.entryString.get()))
+						self.logAction(time.time(), "rewarded_poke")
+						self.primed = False
+						self.resetTrial()
+					elif self.waiting == False:
+						self.logAction(time.time(), "unrewarded_poke")
+						self.resetTrial()
+
+					
+	def update(self):
+		"""Runs every 20ms to update the state of the GPIO inputs"""
+		self.readStates()
+		self._timer = self.after(20,self.update)
+
+def train():
 	root = Tk()
 	root.title("Rat box")
 	a = App(root)
@@ -467,6 +596,16 @@ def main():
 	root.protocol("WM_DELETE_WINDOW",a.onClose)
 	root.resizable(True,True)
 	root.mainloop()
+
+def mag_train():
+	root = Tk()
+	root.title("Rat box")
+	a = App2(root)
+	a.grid()
+	root.protocol("WM_DELETE_WINDOW",a.onClose)
+	root.resizable(True,True)
+	root.mainloop()
+
    
 
 if __name__ == '__main__':
