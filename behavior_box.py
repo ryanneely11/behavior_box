@@ -587,7 +587,9 @@ class App2(Frame):
 		self.readStates()
 		self._timer = self.after(20,self.update)
 
-def train():
+def train(filename = None):
+	if filename is not None:
+		global FILEPATH = filename
 	root = Tk()
 	root.title("Rat box")
 	a = App(root)
@@ -597,7 +599,9 @@ def train():
 	root.resizable(True,True)
 	root.mainloop()
 
-def mag_train():
+def mag_train(filename = None):
+	if filename is not None:
+		global FILEPATH = filename
 	root = Tk()
 	root.title("Rat box")
 	a = App2(root)
