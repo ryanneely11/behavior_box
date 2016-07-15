@@ -304,7 +304,7 @@ class entryBox(object):
 		self.entryObj.grid(row = grid_row+1, column = grid_col)
 
 class App(Frame):
-	def __init__(self,parent=None, **kw):
+	def __init__(self,parent=None, switch = None, **kw):
 		Frame.__init__(self,parent,**kw)
 		self.parent = parent
 		"""state variables"""
@@ -319,6 +319,8 @@ class App(Frame):
 		self.trialEnded = None
 		self.newTrialStart = None
 		self.fileout = open(FILEPATH, 'w')##file to save the timestamps
+		self.rewards = 0 ##count number of rewards given
+		self.switch = switch ##list of reward counts at which to switch the rewarded lever
 
 		## Get the RPI Hardware dependant list of GPIO
 		#gpio = self.getRPIVersionGPIO()
@@ -336,7 +338,7 @@ class App(Frame):
 		self.ITI_entry = entryBox(self, "inter-trial-interval", "6",5,1)
 
 		#other objects for setting task params
-		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"),font=myFont, wrap = False, command = self.setLevers)
+		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"),font=myFont, wrap = True, command = self.setLevers)
 		self.selectLever.grid(row = 0, column = 1)
 		self.setActive = Checkbutton(self,text="Activate box",font = myFont,variable=self.active, command = self.activate)
 		self.setActive.grid(row = 5, column = 0)
@@ -409,6 +411,12 @@ class App(Frame):
 			if time.time() >= self.newTrialStart:
 				self.initTrial()
 
+	##to switch the rewarded lever
+	def leverSwitch(self):
+		if self.switch != None:
+			if self.rewards in self.switch:
+				self.selectLever.invoke("buttonup")
+				self.setLevers()
 
 	def onClose(self):
 		"""This is used to run the Rpi.GPIO cleanup() method to return pins to be an input
@@ -429,6 +437,7 @@ class App(Frame):
 			if self.active.get():
 				##check timing stuff
 				self.checkTimer()
+				self.leverSwitch()
 				"""check for active inputs and log them"""
 				##top lever
 				if port.name == "top_lever" and port.state ==True:
@@ -446,11 +455,15 @@ class App(Frame):
 					if self.trial_running == False and self.primed == True and self.waiting == False:
 						h20reward(float(self.reward_time_entry.entryString.get()))
 						self.logAction(time.time(), "rewarded_poke")
+						self.rewards += 1
 						self.primed = False
 						self.resetTrial()
 					elif self.trial_running == False:
 						self.logAction(time.time(), "unrewarded_poke")
 						self.resetTrial()
+				##update reward count
+				if port.name == "h20" and self.rewards > port.count:
+					port.incrementCount()
 
 					
 	def update(self):
@@ -472,6 +485,7 @@ class App2(Frame):
 		self.trialEnded = None
 		self.newTrialStart = None
 		self.fileout = open(FILEPATH, 'w')##file to save the timestamps
+		self.rewards = 0 ##count number of rewards given
 
 		## Get the RPI Hardware dependant list of GPIO
 		#gpio = self.getRPIVersionGPIO()
@@ -577,11 +591,15 @@ class App2(Frame):
 					if self.primed == True and self.waiting == False:
 						h20reward(float(self.reward_time_entry.entryString.get()))
 						self.logAction(time.time(), "rewarded_poke")
+						self.rewards += 1
 						self.primed = False
 						self.resetTrial()
 					elif self.waiting == False:
 						self.logAction(time.time(), "unrewarded_poke")
 						self.resetTrial()
+				##update reward count
+				if port.name == "h20" and self.rewards > port.count:
+					port.incrementCount()
 
 					
 	def update(self):
@@ -589,13 +607,14 @@ class App2(Frame):
 		self.readStates()
 		self._timer = self.after(20,self.update)
 
+
 def train(filename = None):
 	global FILEPATH
 	if filename != None:
 		FILEPATH = filename
 	root = Tk()
 	root.title("Rat box")
-	a = App(root)
+	a = App(root, switch = switch)
 	a.grid()
 	"""When the window is closed, run the onClose function."""
 	root.protocol("WM_DELETE_WINDOW",a.onClose)
