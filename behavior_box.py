@@ -608,7 +608,7 @@ class App2(Frame):
 		self._timer = self.after(20,self.update)
 
 
-def train(filename = None):
+def train(filename = None, switch = None):
 	global FILEPATH
 	if filename != None:
 		FILEPATH = filename
