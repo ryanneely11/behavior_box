@@ -414,10 +414,11 @@ class App(Frame):
 	##to switch the rewarded lever
 	def leverSwitch(self):
 		if self.switch != None:
-			print "switch is not None"
 			if self.rewards in self.switch:
-				"Switching lever"
-				self.selectLever.invoke("buttondown")
+				if self.selectLever.get() == "top_lever"
+					self.selectLever.invoke("buttonup")
+				elif self.selectLever.get() == "bottom_lever"
+					self.selectLever.invoke("buttondown")
 
 	def onClose(self):
 		"""This is used to run the Rpi.GPIO cleanup() method to return pins to be an input
