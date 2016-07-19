@@ -414,9 +414,10 @@ class App(Frame):
 	##to switch the rewarded lever
 	def leverSwitch(self):
 		if self.switch != None:
+			print "switch is not None"
 			if self.rewards in self.switch:
-				self.selectLever.invoke("buttonup")
-				self.setLevers()
+				"Switching lever"
+				self.selectLever.invoke("buttondown")
 
 	def onClose(self):
 		"""This is used to run the Rpi.GPIO cleanup() method to return pins to be an input
@@ -437,7 +438,6 @@ class App(Frame):
 			if self.active.get():
 				##check timing stuff
 				self.checkTimer()
-				self.leverSwitch()
 				"""check for active inputs and log them"""
 				##top lever
 				if port.name == "top_lever" and port.state ==True:
@@ -456,6 +456,7 @@ class App(Frame):
 						h20reward(float(self.reward_time_entry.entryString.get()))
 						self.logAction(time.time(), "rewarded_poke")
 						self.rewards += 1
+						self.leverSwitch()
 						self.primed = False
 						self.resetTrial()
 					elif self.trial_running == False:
