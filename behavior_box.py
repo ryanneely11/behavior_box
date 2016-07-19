@@ -415,10 +415,10 @@ class App(Frame):
 	def leverSwitch(self):
 		if self.switch != None:
 			if self.rewards in self.switch:
-				if self.selectLever.get() == "top_lever"
+				if self.selectLever.get() == "top_lever":
 					self.selectLever.invoke("buttonup")
 					self.setLevers()
-				elif self.selectLever.get() == "bottom_lever"
+				elif self.selectLever.get() == "bottom_lever":
 					self.selectLever.invoke("buttondown")
 					self.setLevers()
 
