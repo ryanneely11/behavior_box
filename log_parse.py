@@ -105,6 +105,9 @@ def plot_presses(data_dict, sigma = 90):
 	duration = np.ceil(data_dict['session_length'])
 	top_rewarded = np.asarray(data_dict['top_rewarded'])/60.0
 	bottom_rewarded = np.asarray(data_dict['bottom_rewarded'])/60.0
+	##a bug in earlier versions caused double-logging of lever switches
+	top_rewarded = del_dup(top_rewarded)
+	bottom_rewarded = del_dup(bottom_rewarded)
 	##convert timestamps to histogram structures
 	top, edges = np.histogram(top, bins = duration)
 	bottom, edges = np.histogram(bottom, bins = duration)
@@ -175,6 +178,14 @@ def plot_presses(data_dict, sigma = 90):
 		tick.label.set_fontsize(14)
 	ax2.set_title("top only", fontsize = 14)
 	ax3.set_title("bottom only", fontsize = 14)
+
+def del_dup(seq):
+    """
+    a handy function to delete duplicates in a sequence
+    """
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
 
 
 
