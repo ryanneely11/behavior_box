@@ -420,7 +420,6 @@ class App(Frame):
 					self.setLevers()
 				elif self.selectLever.get() == "bottom_lever":
 					self.selectLever.invoke("buttondown")
-					self.setLevers()
 
 	def onClose(self):
 		"""This is used to run the Rpi.GPIO cleanup() method to return pins to be an input
