@@ -105,9 +105,6 @@ def plot_presses(data_dict, sigma = 90):
 	duration = np.ceil(data_dict['session_length'])
 	top_rewarded = np.asarray(data_dict['top_rewarded'])/60.0
 	bottom_rewarded = np.asarray(data_dict['bottom_rewarded'])/60.0
-	##a bug in earlier versions caused double-logging of lever switches
-	top_rewarded = del_dup(top_rewarded)
-	bottom_rewarded = del_dup(bottom_rewarded)
 	##convert timestamps to histogram structures
 	top, edges = np.histogram(top, bins = duration)
 	bottom, edges = np.histogram(bottom, bins = duration)
@@ -146,8 +143,8 @@ def plot_presses(data_dict, sigma = 90):
 		tick.label.set_fontsize(14)
 	for tick in ax.yaxis.get_major_ticks():
 		tick.label.set_fontsize(14)
-	##plot them separately
-	# ##figure out the order of lever setting to create color spans
+	#plot them separately
+	##figure out the order of lever setting to create color spans
 	# if top_rewarded.min() < bottom_rewarded.min():
 	# 	for i in range(top_rewarded.size):
 	# 		try:
@@ -155,7 +152,7 @@ def plot_presses(data_dict, sigma = 90):
 	# 		except IndexError:
 	# 			ax2.axvspan(top_rewarded[i], duration, facecolor = 'r', alpha = 0.2)
 	# else:
-	# 	for i in range(1,2):
+	# 	for i in range(bottom_rewarded.size):
 	# 		try:
 	# 			ax3.axvspan(bottom_rewarded[i], top_rewarded[i], facecolor = 'b', alpha = 0.2)
 	# 		except IndexError:
@@ -178,14 +175,8 @@ def plot_presses(data_dict, sigma = 90):
 		tick.label.set_fontsize(14)
 	ax2.set_title("top only", fontsize = 14)
 	ax3.set_title("bottom only", fontsize = 14)
+	return bottom_rewarded
 
-def del_dup(seq):
-    """
-    a handy function to delete duplicates in a sequence
-    """
-    seen = set()
-    seen_add = seen.add
-    return [x for x in seq if not (x in seen or seen_add(x))]
 
 
 
