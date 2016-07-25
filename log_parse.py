@@ -175,7 +175,6 @@ def plot_presses(data_dict, sigma = 90):
 		tick.label.set_fontsize(14)
 	ax2.set_title("top only", fontsize = 14)
 	ax3.set_title("bottom only", fontsize = 14)
-	return bottom_rewarded
 
 
 
