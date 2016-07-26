@@ -102,7 +102,7 @@ def plot_presses(data_dict, sigma = 90):
 	##extract relevant data
 	top = data_dict['top_lever']
 	bottom = data_dict['bottom_lever']
-	duration = np.ceil(data_dict['session_length'])
+	duration = int(np.ceil(data_dict['session_length']))
 	top_rewarded = np.asarray(data_dict['top_rewarded'])/60.0
 	bottom_rewarded = np.asarray(data_dict['bottom_rewarded'])/60.0
 	##convert timestamps to histogram structures
