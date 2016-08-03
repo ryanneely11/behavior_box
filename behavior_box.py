@@ -823,6 +823,20 @@ def mag_train(filename = None):
 	root.resizable(True,True)
 	root.mainloop()
 
+
+def record(filename = None, switch = None):
+	global FILEPATH
+	if filename != None:
+		FILEPATH = filename
+	root = Tk()
+	root.title("Rat box")
+	a = App3(root, switch = switch)
+	a.grid()
+	"""When the window is closed, run the onClose function."""
+	root.protocol("WM_DELETE_WINDOW",a.onClose)
+	root.resizable(True,True)
+	root.mainloop()
+
    
 
 if __name__ == '__main__':
