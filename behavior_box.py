@@ -39,7 +39,6 @@ inputs = {
 "nose_poke":26,
 "top_lever":17,
 "bottom_lever":27,
-"Recording":25
 }
 
 outputs = {
@@ -52,9 +51,10 @@ outputs = {
 "buzz_2":5  ##pull pin for buzzer
 }
 
+TDT_trigger = 25
+
 ##outputs to exclude from the GUI (no point to have them):
 exclude_out = ["C1", "C3", "C5", "buzz_1", "buzz_2"]
-exclude_in = ["Recording"]
 
 ##set up the GPIO board to the appropriate settings
 pi.setmode(pi.BCM) #to use the BCM pin mapping
@@ -289,7 +289,30 @@ class GPIO(Frame):
 			the state of an output port"""
 		return pi.input(self.pin)
 
+class statusLabel(Tk.Frame):
+	def __init__(self, parent, name):
+		self.name = name
+		self.state = False
+		Tk.Frame.__init__(self,parent,width=250,height=150,bd=1,padx=5,pady=5)
+		self.parent = parent
+#		self.configure(**kw)
+		self.cmdState = Tk.IntVar()
+		self.label = Tk.Label(self, text = self.name, font = myFont)
+		self.led = LED(self, 50)
+		self.label.grid(column = 0, row = 0)
+		self.led.grid(column = 2, row = 0)
 
+	def toggleState(self, status):
+		"""updates state and LED
+		"""
+		self.state = status
+		self.updateLED()
+
+	def updateLED(self):
+		if self.state:
+			self.led.set(True)
+		else:
+			self.led.set(False)
 
 class entryBox(object):
 	"""Tkinter object that contains some editable text"""
@@ -325,7 +348,7 @@ class App(Frame):
 
 		## Get the RPI Hardware dependant list of GPIO
 		#gpio = self.getRPIVersionGPIO()
-		for n, key in enumerate([n for n in inputs.keys() if n not in exclude_in]):
+		for n, key in enumerate(inputs.keys()):
 			self.ports.append(GPIO(self,pin=inputs[key],name=key))
 			self.ports[-1].grid(row=n, column=0)
 		for n, key in enumerate([n for n in outputs.keys() if n not in exclude_out]):
@@ -635,6 +658,8 @@ class App3(Frame):
 		self.fileout = open(FILEPATH, 'w')##file to save the timestamps
 		self.rewards = 0 ##count number of rewards given
 		self.switch = switch ##list of reward counts at which to switch the rewarded lever
+		##set up the TDT_input pin
+		pi.setup(TDT_trigger, pi.IN)
 
 		## Get the RPI Hardware dependant list of GPIO
 		#gpio = self.getRPIVersionGPIO()
@@ -658,8 +683,18 @@ class App3(Frame):
 		#self.setActive.grid(row = 5, column = 0)
 		self.resetCounts = Button(self, text = "Reset Counts", font=myFont, command = self.counterReset)
 		self.resetCounts.grid(row = 6, column = 0)
+		##to monitor recording state
+		self.recordingState = statusLabel(self, "Recording")
+		self.recordingState.grid(row = 5, column = 0)
 
 		self.update()
+
+	def check_trigger(self):
+		TDT_state = pi.input(TDT_trigger)
+		if TDT_state != self.active.get():
+			self.active.set(TDT_state)
+			self.activate()
+			self.recordingState.toggleState(self.active.get())			
 
 	def setLevers(self):
 		"""a function to set the rewarded and unrewarded levers"""
@@ -756,9 +791,7 @@ class App3(Frame):
 		for port in self.ports:
 			port.updateInput()
 			##look for a signal from the TDT that the state has changed
-			if port.name == "Recording" and port.state != self.active.get():
-				self.active.set(port.state)
-				self.activate()
+			self.check_trigger()
 			##check to see if the box is active
 			if self.active.get():
 				##check timing stuff
