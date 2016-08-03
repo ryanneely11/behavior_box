@@ -38,7 +38,8 @@ FILEPATH = "/home/pi/Desktop/test.txt"
 inputs = {
 "nose_poke":26,
 "top_lever":17,
-"bottom_lever":27
+"bottom_lever":27,
+"Recording":25
 }
 
 outputs = {
@@ -47,13 +48,13 @@ outputs = {
 "C1":12, #C1 = bitmask 2 (on TDT)
 "C3":23, #C3 = bitmask 8
 "C5":24, #C5 = bitmask 32
-"C7":25, #C7 = bitmask 128
 "buzz_1":6, ##push pin for buzzer
 "buzz_2":5  ##pull pin for buzzer
 }
 
 ##outputs to exclude from the GUI (no point to have them):
-exclude_out = ["C1", "C3", "C5", "C7", "buzz_1", "buzz_2"]
+exclude_out = ["C1", "C3", "C5", "buzz_1", "buzz_2"]
+exclude_in = ["Recording"]
 
 ##set up the GPIO board to the appropriate settings
 pi.setmode(pi.BCM) #to use the BCM pin mapping
@@ -324,7 +325,7 @@ class App(Frame):
 
 		## Get the RPI Hardware dependant list of GPIO
 		#gpio = self.getRPIVersionGPIO()
-		for n, key in enumerate(inputs.keys()):
+		for n, key in enumerate([n for n in inputs.keys() if n not in exclude_in]):
 			self.ports.append(GPIO(self,pin=inputs[key],name=key))
 			self.ports[-1].grid(row=n, column=0)
 		for n, key in enumerate([n for n in outputs.keys() if n not in exclude_out]):
@@ -377,8 +378,13 @@ class App(Frame):
 	def logAction(self, timestamp, label):
 		"""function to log the timestamp of a particular action"""
 		#make sure this action hasn't already been logged
-		log = str(timestamp-self.startTime)+","+label+"\n"
-		self.fileout.write(log)
+		try:
+			log = str(timestamp-self.startTime)+","+label+"\n"
+			self.fileout.write(log)
+		##you can throw a typeError if you try to log a lever press before
+		##start time has been set. No prob- don't care about it anyway
+		except TypeError:
+			pass
 
 	def initTrial(self):
 		"""function to start a new trial"""
@@ -598,6 +604,187 @@ class App2(Frame):
 						self.primed = False
 						self.resetTrial()
 					elif self.waiting == False:
+						self.logAction(time.time(), "unrewarded_poke")
+						self.resetTrial()
+				##update reward count
+				if port.name == "h20" and self.rewards > port.count:
+					port.incrementCount()
+
+					
+	def update(self):
+		"""Runs every 20ms to update the state of the GPIO inputs"""
+		self.readStates()
+		self._timer = self.after(20,self.update)
+
+class App3(Frame):
+	def __init__(self,parent=None, switch = None, **kw):
+		Frame.__init__(self,parent,**kw)
+		self.parent = parent
+		"""state variables"""
+		self.ports = []
+		self.startTime = None ##timestamp that training starts; all times relative to this
+		self.active = IntVar() ##is the program running?
+		self.active.set(False)
+		self.trial_running = False ##has a trial been signaled?
+		self.primed = False ##is the reward port primed?
+		self.rewarded = None
+		self.unrewarded = None
+		self.waiting = False
+		self.trialEnded = None
+		self.newTrialStart = None
+		self.fileout = open(FILEPATH, 'w')##file to save the timestamps
+		self.rewards = 0 ##count number of rewards given
+		self.switch = switch ##list of reward counts at which to switch the rewarded lever
+
+		## Get the RPI Hardware dependant list of GPIO
+		#gpio = self.getRPIVersionGPIO()
+		for n, key in enumerate(inputs.keys()):
+			self.ports.append(GPIO(self,pin=inputs[key],name=key))
+			self.ports[-1].grid(row=n, column=0)
+		for n, key in enumerate([n for n in outputs.keys() if n not in exclude_out]):
+			self.ports.append(GPIO(self,pin=outputs[key],name=key))
+			self.ports[-1].grid(row=n+3,column=0)
+		
+
+		###entry boxes for setting reward parameters
+		self.reward_time_entry = entryBox(self, "Reward time", "1.0", 1,1)
+		self.reward_rate_entry = entryBox(self, "Reward chance", "0.75",3,1)
+		self.ITI_entry = entryBox(self, "inter-trial-interval", "6",5,1)
+
+		#other objects for setting task params
+		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"),font=myFont, wrap = True, command = self.setLevers)
+		self.selectLever.grid(row = 0, column = 1)
+		#self.setActive = Checkbutton(self,text="Activate box",font = myFont,variable=self.active, command = self.activate)
+		#self.setActive.grid(row = 5, column = 0)
+		self.resetCounts = Button(self, text = "Reset Counts", font=myFont, command = self.counterReset)
+		self.resetCounts.grid(row = 6, column = 0)
+
+		self.update()
+
+	def setLevers(self):
+		"""a function to set the rewarded and unrewarded levers"""
+		if self.selectLever.get() == "top_lever":
+			self.rewarded = "top_lever"
+			self.unrewarded = "bottom_lever"
+		elif self.selectLever.get() == "bottom_lever":
+			self.rewarded = "bottom_lever"
+			self.unrewarded = "top_lever"
+		self.logAction(time.time(), "rewarded="+self.selectLever.get())
+
+	def counterReset(self):
+		"""function to reset the displayed counters"""
+		for port in self.ports:
+			port.resetCount()
+
+	def activate(self):
+		"""function to set the start time clock"""
+		if self.active.get() == True:
+			##set the start time
+			self.startTime = time.time()
+			self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
+			self.waiting = True
+			self.setLevers()
+			self.counterReset()
+		elif self.active.get() == False:
+			self.logAction(time.time(), "session_end")
+
+	def logAction(self, timestamp, label):
+		"""function to log the timestamp of a particular action"""
+		#make sure this action hasn't already been logged
+		try:
+			log = str(timestamp-self.startTime)+","+label+"\n"
+			self.fileout.write(log)
+		##you can throw a typeError if you try to log a lever press before
+		##start time has been set. No prob- don't care about it anyway
+		except TypeError:
+			pass
+
+	def initTrial(self):
+		"""function to start a new trial"""
+		self.logAction(time.time(), "trial_begin")
+		self.trial_running = True
+		lightswitch("on")
+		buzzer2()
+		self.waiting = False
+
+	def endTrial(self, port_name):
+		"""function to end a trial"""
+		self.trial_running = False
+		lightswitch("off")
+		buzzer()
+		if port_name == self.rewarded:
+			if np.random.random() <= float(self.reward_rate_entry.entryString.get()):
+				self.primed = True
+				self.logAction(time.time(),"reward_primed")
+		else:
+			self.logAction(time.time(),"reward_idle")
+
+	def resetTrial(self):
+		"""a function to reset the trial"""
+		self.trialEnded = time.time()
+		self.newTrialStart = self.trialEnded+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
+		self.waiting = True
+
+	def checkTimer(self):
+		if self.waiting == True:
+			if time.time() >= self.newTrialStart:
+				self.initTrial()
+
+	##to switch the rewarded lever
+	def leverSwitch(self):
+		if self.switch != None:
+			if self.rewards in self.switch:
+				if self.selectLever.get() == "top_lever":
+					self.selectLever.invoke("buttonup")
+					self.setLevers()
+				elif self.selectLever.get() == "bottom_lever":
+					self.selectLever.invoke("buttondown")
+
+	def onClose(self):
+		"""This is used to run the Rpi.GPIO cleanup() method to return pins to be an input
+		and then destory the app and its parent."""
+		self.fileout.close()
+		try:
+			pi.cleanup()
+		except RuntimeWarning as e:
+			print(e)
+		self.destroy()
+		self.parent.destroy()
+
+	def readStates(self):
+		"""Cycles through the assigned ports and updates them based on the GPIO input"""
+		for port in self.ports:
+			port.updateInput()
+			##look for a signal from the TDT that the state has changed
+			if port.name == "Recording" and port.state != self.active.get():
+				self.active.set(port.state)
+				self.activate()
+			##check to see if the box is active
+			if self.active.get():
+				##check timing stuff
+				self.checkTimer()
+				"""check for active inputs and log them"""
+				##top lever
+				if port.name == "top_lever" and port.state ==True:
+					self.logAction(time.time(), "top_lever")
+					if self.trial_running:
+						self.endTrial(port.name)
+				##bottom lever
+				if port.name == "bottom_lever" and port.state == True:
+					self.logAction(time.time(), "bottom_lever")
+					if self.trial_running:
+						self.endTrial(port.name)
+				##nose poke 
+				if port.name == "nose_poke" and port.state == True:
+					#self.logAction(time.time(), "nose_poke")
+					if self.trial_running == False and self.primed == True and self.waiting == False:
+						h20reward(float(self.reward_time_entry.entryString.get()))
+						self.logAction(time.time(), "rewarded_poke")
+						self.rewards += 1
+						self.leverSwitch()
+						self.primed = False
+						self.resetTrial()
+					elif self.trial_running == False:
 						self.logAction(time.time(), "unrewarded_poke")
 						self.resetTrial()
 				##update reward count
