@@ -289,15 +289,15 @@ class GPIO(Frame):
 			the state of an output port"""
 		return pi.input(self.pin)
 
-class statusLabel(Tk.Frame):
+class statusLabel(Frame):
 	def __init__(self, parent, name):
 		self.name = name
 		self.state = False
-		Tk.Frame.__init__(self,parent,width=250,height=150,bd=1,padx=5,pady=5)
+		Frame.__init__(self,parent,width=250,height=150,bd=1,padx=5,pady=5)
 		self.parent = parent
 #		self.configure(**kw)
-		self.cmdState = Tk.IntVar()
-		self.label = Tk.Label(self, text = self.name, font = myFont)
+		self.cmdState = IntVar()
+		self.label = Label(self, text = self.name, font = myFont)
 		self.led = LED(self, 50)
 		self.label.grid(column = 0, row = 0)
 		self.led.grid(column = 2, row = 0)
