@@ -47,8 +47,8 @@ outputs = {
 "buzz_1":6, ##push pin for buzzer
 "buzz_2":5,  ##pull pin for buzzer
 "Event16":12, ##trial begin
-"Event13":16, ##reward_primed
-"Event05":22, ##reward_idle
+"Event13":16, ##reward_top
+"Event05":22, ##reward_bottom
 "Event03":25, ##top_lever
 "Event04":23, ##bottom_lever
 "Event07":19, ##rewarded_poke
@@ -382,9 +382,9 @@ class App(Frame):
 		
 
 		###entry boxes for setting reward parameters
-		self.reward_time_entry = entryBox(self, "Reward time", "1.0", 1,1)
-		self.reward_rate_entry = entryBox(self, "Reward chance", "0.75",3,1)
-		self.ITI_entry = entryBox(self, "inter-trial-interval", "6",5,1)
+		self.reward_time_entry = entryBox(self, "Reward time", "2.5", 1,1)
+		self.reward_rate_entry = entryBox(self, "Reward chance", "0.85",3,1)
+		self.ITI_entry = entryBox(self, "inter-trial-interval", "2",5,1)
 
 		#other objects for setting task params
 		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"),font=myFont, wrap = True, command = self.setLevers)
@@ -400,10 +400,12 @@ class App(Frame):
 		"""a function to set the rewarded and unrewarded levers"""
 		if self.selectLever.get() == "top_lever":
 			self.rewarded = "top_lever"
+			plex_event(16)
 			self.unrewarded = "bottom_lever"
 		elif self.selectLever.get() == "bottom_lever":
 			self.rewarded = "bottom_lever"
 			self.unrewarded = "top_lever"
+			plex_event(22)
 		self.logAction(time.time(), "rewarded="+self.selectLever.get())
 
 	def counterReset(self):
@@ -451,10 +453,10 @@ class App(Frame):
 		if port_name == self.rewarded:
 			if np.random.random() <= float(self.reward_rate_entry.entryString.get()):
 				self.primed = True
-				plex_event(16)
+				#plex_event(16)
 				self.logAction(time.time(),"reward_primed")
 		else:
-			plex_event(22)
+			#plex_event(22)
 			self.logAction(time.time(),"reward_idle")
 
 	def resetTrial(self):
@@ -474,7 +476,7 @@ class App(Frame):
 			if self.rewards in self.switch:
 				if self.selectLever.get() == "top_lever":
 					self.selectLever.invoke("buttonup")
-					self.setLevers()
+#					self.setLevers()
 				elif self.selectLever.get() == "bottom_lever":
 					self.selectLever.invoke("buttondown")
 
