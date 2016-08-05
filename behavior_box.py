@@ -44,17 +44,36 @@ inputs = {
 outputs = {
 "h20":13,
 "led":20,
-"C1":12, #C1 = bitmask 2 (on TDT)
-"C3":23, #C3 = bitmask 8
-"C5":24, #C5 = bitmask 32
 "buzz_1":6, ##push pin for buzzer
-"buzz_2":5  ##pull pin for buzzer
+"buzz_2":5,  ##pull pin for buzzer
+"Event16":12, ##trial begin
+"Event13":16, ##reward_primed
+"Event05":22, ##reward_idle
+"Event03":25, ##top_lever
+"Event04":23, ##bottom_lever
+"Event07":19, ##rewarded_poke
+"Event12":18  ##unrewarded poke
 }
 
 TDT_trigger = 25
 
+"""
+Current mapping from pi to Plexon:
+pi:			plexon:
+
+pin 12		Event16 
+pin 16		Event13 
+pin 22		Event05  
+pin 25		Event3
+pin 23		Event4
+pin 19		Event7
+pin 18		Event12
+
+"""
+
 ##outputs to exclude from the GUI (no point to have them):
-exclude_out = ["C1", "C3", "C5", "buzz_1", "buzz_2"]
+exclude_out = ["buzz_1", "buzz_2", "Event16","Event13","Event05","Event03",
+"Event04","Event07","Event12"]
 
 ##set up the GPIO board to the appropriate settings
 pi.setmode(pi.BCM) #to use the BCM pin mapping
@@ -113,6 +132,12 @@ def lightswitch(state):
 		pi.output(outputs['led'], True)
 	elif state == "off":
 		pi.output(outputs['led'], False)
+
+##to trigger plexon events; see above ##TODO: make sure this is in the right order... should it be False first?
+def plex_event(channel):
+	pi.output(channel, True)
+	time.sleep(0.04)
+	pi.output(channel, False)
 
 
 ###gui stuff###
@@ -411,6 +436,7 @@ class App(Frame):
 
 	def initTrial(self):
 		"""function to start a new trial"""
+		plex_event(12)
 		self.logAction(time.time(), "trial_begin")
 		self.trial_running = True
 		lightswitch("on")
@@ -425,8 +451,10 @@ class App(Frame):
 		if port_name == self.rewarded:
 			if np.random.random() <= float(self.reward_rate_entry.entryString.get()):
 				self.primed = True
+				plex_event(16)
 				self.logAction(time.time(),"reward_primed")
 		else:
+			plex_event(22)
 			self.logAction(time.time(),"reward_idle")
 
 	def resetTrial(self):
@@ -472,11 +500,13 @@ class App(Frame):
 				"""check for active inputs and log them"""
 				##top lever
 				if port.name == "top_lever" and port.state ==True:
+					plex_event(25)
 					self.logAction(time.time(), "top_lever")
 					if self.trial_running:
 						self.endTrial(port.name)
 				##bottom lever
 				if port.name == "bottom_lever" and port.state == True:
+					plex_event(23)
 					self.logAction(time.time(), "bottom_lever")
 					if self.trial_running:
 						self.endTrial(port.name)
@@ -485,12 +515,14 @@ class App(Frame):
 					#self.logAction(time.time(), "nose_poke")
 					if self.trial_running == False and self.primed == True and self.waiting == False:
 						h20reward(float(self.reward_time_entry.entryString.get()))
+						plex_event(19)
 						self.logAction(time.time(), "rewarded_poke")
 						self.rewards += 1
 						self.leverSwitch()
 						self.primed = False
 						self.resetTrial()
 					elif self.trial_running == False:
+						plex_event(18)
 						self.logAction(time.time(), "unrewarded_poke")
 						self.resetTrial()
 				##update reward count
@@ -530,9 +562,9 @@ class App2(Frame):
 		
 
 		###entry boxes for setting reward parameters
-		self.reward_time_entry = entryBox(self, "Reward time", "1.0", 1,1)
-		self.reward_rate_entry = entryBox(self, "Reward chance", "0.75",3,1)
-		self.ITI_entry = entryBox(self, "inter-trial-interval", "6",5,1)
+		self.reward_time_entry = entryBox(self, "Reward time", "2.5", 1,1)
+		self.reward_rate_entry = entryBox(self, "Reward chance", "0.85",3,1)
+		self.ITI_entry = entryBox(self, "inter-trial-interval", "2",5,1)
 
 		#other objects for setting task params
 		self.setActive = Checkbutton(self,text="Activate box",font = myFont,variable=self.active, command = self.activate)
