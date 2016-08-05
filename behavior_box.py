@@ -516,9 +516,9 @@ class App(Frame):
 				if port.name == "nose_poke" and port.state == True:
 					#self.logAction(time.time(), "nose_poke")
 					if self.trial_running == False and self.primed == True and self.waiting == False:
-						h20reward(float(self.reward_time_entry.entryString.get()))
 						plex_event(19)
 						self.logAction(time.time(), "rewarded_poke")
+						h20reward(float(self.reward_time_entry.entryString.get()))
 						self.rewards += 1
 						self.leverSwitch()
 						self.primed = False
