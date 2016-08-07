@@ -52,10 +52,10 @@ outputs = {
 "Event03":25, ##top_lever
 "Event04":23, ##bottom_lever
 "Event07":19, ##rewarded_poke
-"Event12":18  ##unrewarded poke
+"Event12":18,  ##unrewarded poke
+"start_trigger":4
 }
 
-start_trigger = 4
 
 """
 Current mapping from pi to Plexon:
@@ -73,7 +73,7 @@ pin 18		Event12
 
 ##outputs to exclude from the GUI (no point to have them):
 exclude_out = ["buzz_1", "buzz_2", "Event16","Event13","Event05","Event03",
-"Event04","Event07","Event12"]
+"Event04","Event07","Event12", "start_trigger"]
 
 ##set up the GPIO board to the appropriate settings
 pi.setmode(pi.BCM) #to use the BCM pin mapping
@@ -85,6 +85,19 @@ for key in inputs.keys():
 for key in outputs.keys():
 	pi.setup(outputs[key], pi.OUT)
 	pi.output(outputs[key],False)
+
+event_pins = {
+"Event16":12, ##trial begin
+"Event13":16, ##reward_top
+"Event05":22, ##reward_bottom
+"Event03":25, ##top_lever
+"Event04":23, ##bottom_lever
+"Event07":19, ##rewarded_poke
+"Event12":18 #unrewarded poke
+}
+
+for key in event_pins.keys():
+	pi.output(outputs[key],True)
 
 ##set the pull up resistor for the levers
 pi.setup([17,27],pi.IN, pull_up_down = pi.PUD_DOWN)
@@ -135,6 +148,11 @@ def lightswitch(state):
 
 ##to trigger plexon events; see above ##TODO: make sure this is in the right order... should it be False first?
 def plex_event(channel):
+	pi.output(channel, False)
+	time.sleep(0.04)
+	pi.output(channel, True)
+
+def plex_trigger(channel):
 	pi.output(channel, True)
 	time.sleep(0.05)
 	pi.output(channel, False)
@@ -418,7 +436,7 @@ class App(Frame):
 		if self.active.get() == True:
 			##set the start time
 			self.startTime = time.time()
-			plex_event(start_trigger)
+			plex_trigger(outputs['start_trigger'])
 			self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
 			self.waiting = True
 			self.setLevers()
