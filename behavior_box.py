@@ -136,7 +136,7 @@ def lightswitch(state):
 ##to trigger plexon events; see above ##TODO: make sure this is in the right order... should it be False first?
 def plex_event(channel):
 	pi.output(channel, True)
-	time.sleep(0.04)
+	time.sleep(0.05)
 	pi.output(channel, False)
 
 
