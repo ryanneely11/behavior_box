@@ -55,7 +55,7 @@ outputs = {
 "Event12":18  ##unrewarded poke
 }
 
-TDT_trigger = 25
+start_trigger = 4
 
 """
 Current mapping from pi to Plexon:
@@ -418,6 +418,7 @@ class App(Frame):
 		if self.active.get() == True:
 			##set the start time
 			self.startTime = time.time()
+			plex_event(start_trigger)
 			self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
 			self.waiting = True
 			self.setLevers()
