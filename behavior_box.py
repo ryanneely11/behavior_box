@@ -46,13 +46,6 @@ outputs = {
 "led":20,
 "buzz_1":6, ##push pin for buzzer
 "buzz_2":5,  ##pull pin for buzzer
-"Event16":12, ##trial begin
-"Event13":16, ##reward_top
-"Event05":22, ##reward_bottom
-"Event03":25, ##top_lever
-"Event04":23, ##bottom_lever
-"Event07":19, ##rewarded_poke
-"Event12":18,  ##unrewarded poke
 "start_trigger":4
 }
 
@@ -72,8 +65,7 @@ pin 18		Event12
 """
 
 ##outputs to exclude from the GUI (no point to have them):
-exclude_out = ["buzz_1", "buzz_2", "Event16","Event13","Event05","Event03",
-"Event04","Event07","Event12", "start_trigger"]
+exclude_out = ["buzz_1", "buzz_2","led","start_trigger"]
 
 ##set up the GPIO board to the appropriate settings
 pi.setmode(pi.BCM) #to use the BCM pin mapping
@@ -85,19 +77,6 @@ for key in inputs.keys():
 for key in outputs.keys():
 	pi.setup(outputs[key], pi.OUT)
 	pi.output(outputs[key],False)
-
-event_pins = {
-"Event16":12, ##trial begin
-"Event13":16, ##reward_top
-"Event05":22, ##reward_bottom
-"Event03":25, ##top_lever
-"Event04":23, ##bottom_lever
-"Event07":19, ##rewarded_poke
-"Event12":18 #unrewarded poke
-}
-
-for key in event_pins.keys():
-	pi.output(outputs[key],True)
 
 ##set the pull up resistor for the levers
 pi.setup([17,27],pi.IN, pull_up_down = pi.PUD_DOWN)
@@ -146,15 +125,12 @@ def lightswitch(state):
 	elif state == "off":
 		pi.output(outputs['led'], False)
 
-##to trigger plexon events; see above ##TODO: make sure this is in the right order... should it be False first?
-def plex_event(channel):
-	pi.output(channel, False)
-	time.sleep(0.04)
-	pi.output(channel, True)
+##to trigger plexon start recording;
 
 def plex_trigger(channel):
 	pi.output(channel, True)
-	time.sleep(0.05)
+	##requires 5V trigger for at least 250 ms
+	time.sleep(0.5)
 	pi.output(channel, False)
 
 
@@ -418,12 +394,12 @@ class App(Frame):
 		"""a function to set the rewarded and unrewarded levers"""
 		if self.selectLever.get() == "top_lever":
 			self.rewarded = "top_lever"
-			plex_event(16)
+
 			self.unrewarded = "bottom_lever"
 		elif self.selectLever.get() == "bottom_lever":
 			self.rewarded = "bottom_lever"
 			self.unrewarded = "top_lever"
-			plex_event(22)
+
 		self.logAction(time.time(), "rewarded="+self.selectLever.get())
 
 	def counterReset(self):
@@ -436,7 +412,8 @@ class App(Frame):
 		if self.active.get() == True:
 			##set the start time
 			self.startTime = time.time()
-			plex_trigger(4)
+			##trigger the recording
+			plex_trigger(outputs["start_trigger"])
 			self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
 			self.waiting = True
 			self.setLevers()
@@ -457,7 +434,6 @@ class App(Frame):
 
 	def initTrial(self):
 		"""function to start a new trial"""
-		plex_event(12)
 		self.logAction(time.time(), "trial_begin")
 		self.trial_running = True
 		lightswitch("on")
@@ -472,10 +448,10 @@ class App(Frame):
 		if port_name == self.rewarded:
 			if np.random.random() <= float(self.reward_rate_entry.entryString.get()):
 				self.primed = True
-				#plex_event(16)
+		
 				self.logAction(time.time(),"reward_primed")
 		else:
-			#plex_event(22)
+	
 			self.logAction(time.time(),"reward_idle")
 
 	def resetTrial(self):
@@ -521,13 +497,13 @@ class App(Frame):
 				"""check for active inputs and log them"""
 				##top lever
 				if port.name == "top_lever" and port.state ==True:
-					plex_event(25)
+		
 					self.logAction(time.time(), "top_lever")
 					if self.trial_running:
 						self.endTrial(port.name)
 				##bottom lever
 				if port.name == "bottom_lever" and port.state == True:
-					plex_event(23)
+		
 					self.logAction(time.time(), "bottom_lever")
 					if self.trial_running:
 						self.endTrial(port.name)
@@ -535,7 +511,7 @@ class App(Frame):
 				if port.name == "nose_poke" and port.state == True:
 					#self.logAction(time.time(), "nose_poke")
 					if self.trial_running == False and self.primed == True and self.waiting == False:
-						plex_event(19)
+			
 						self.logAction(time.time(), "rewarded_poke")
 						h20reward(float(self.reward_time_entry.entryString.get()))
 						self.rewards += 1
@@ -543,7 +519,7 @@ class App(Frame):
 						self.primed = False
 						self.resetTrial()
 					elif self.trial_running == False:
-						plex_event(18)
+			
 						self.logAction(time.time(), "unrewarded_poke")
 						self.resetTrial()
 				##update reward count
