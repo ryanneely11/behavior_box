@@ -130,7 +130,7 @@ def lightswitch(state):
 def plex_trigger(channel):
 	pi.output(channel, True)
 	##requires 5V trigger for at least 250 ms
-	time.sleep(0.5)
+	time.sleep(0.05)
 	pi.output(channel, False)
 
 
