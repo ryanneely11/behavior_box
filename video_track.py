@@ -24,7 +24,7 @@ cap = cv2.VideoCapture(0)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
 def capture(file_path = None, animal_name = "AnimalX", session = "Day0"):
-	if file_path = None:
+	if file_path == None:
 		file_path = save_folder
 	##create a videoWriter object
 	writer = cv2.VideoWriter(file_path)
