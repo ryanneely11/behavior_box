@@ -14,7 +14,7 @@ inputs = {
 }
 
 for key in inputs:
-	pi.setup(inputs['key'], pi.IN)
+	pi.setup(inputs[key], pi.IN)
 
 ## default file to store data
 save_folder = "/home/pi/Desktop/video/Day0.avi"
@@ -27,15 +27,17 @@ def capture(file_path = None, animal_name = "AnimalX", session = "Day0"):
 	if file_path == None:
 		file_path = save_folder
 	##create a videoWriter object
-	writer = cv2.VideoWriter(file_path)
+	writer = cv2.VideoWriter(file_path, fourcc, 60.0, (640,480))
 	##a counter to count the trials
 	trial_number = 0
 	##wait for the session to begin (triggered by behavior box)
 	while not pi.input(inputs['session_running']):
 		time.sleep(0.2)
 	##when the session begins, run this loop until it ends
+        print("Detected start trigger")
 	while pi.input(inputs['session_running']):
 		##check to see if a trial has started
+                print("Starting trial " +str(trial_number))
 		while pi.input(inputs['trial_running']):
 			##get the video frame
 			ret, frame = cap.read()
@@ -48,9 +50,10 @@ def capture(file_path = None, animal_name = "AnimalX", session = "Day0"):
 				cv2.FONT_HERSHEY_PLAIN, 1, (255,255,0))
 			##write the video frame to file
 			writer.write(frame)
-			cv2.imshow('frame', frame)
+#			cv2.imshow('frame', frame)
+                trial_number+=1
 	cap.release()
-	out.release()
+	writer.release()
 	cv2.destroyAllWindows()
 
 
