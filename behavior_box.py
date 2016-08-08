@@ -46,7 +46,9 @@ outputs = {
 "led":20,
 "buzz_1":6, ##push pin for buzzer
 "buzz_2":5,  ##pull pin for buzzer
-"start_trigger":18
+"start_trigger":18, ##to start plexon recording
+"video_trigger":22,  ##to start video capture
+"video_trial":16, ##to signal the start of a trial to the video recorder
 }
 
 
@@ -65,7 +67,7 @@ pin 18		Event12
 """
 
 ##outputs to exclude from the GUI (no point to have them):
-exclude_out = ["buzz_1", "buzz_2","led","start_trigger"]
+exclude_out = ["buzz_1", "buzz_2","led","start_trigger", "video_trigger"]
 
 ##set up the GPIO board to the appropriate settings
 pi.setmode(pi.BCM) #to use the BCM pin mapping
@@ -417,14 +419,18 @@ class App(Frame):
 		if self.active.get() == True:
 			##set the start time
 			self.startTime = time.time()
-			##trigger the recording
+			##trigger the ephys recording
 			plex_trigger(outputs["start_trigger"])
+			##trigger the video recording
+			pi.output(outputs['video_trigger'], True)
 			self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
 			self.waiting = True
 			self.setLevers()
 			self.counterReset()
 		elif self.active.get() == False:
 			self.logAction(time.time(), "session_end")
+			##stop the video recording
+			pi.output(outputs['video_trigger'],False)
 
 	def logAction(self, timestamp, label):
 		"""function to log the timestamp of a particular action"""
@@ -440,6 +446,7 @@ class App(Frame):
 	def initTrial(self):
 		"""function to start a new trial"""
 		self.logAction(time.time(), "trial_begin")
+		pi.output(outputs['video_trial'], True)
 		self.trial_running = True
 		lightswitch("on")
 		buzzer2()
@@ -516,7 +523,6 @@ class App(Frame):
 				if port.name == "nose_poke" and port.state == True:
 					#self.logAction(time.time(), "nose_poke")
 					if self.trial_running == False and self.primed == True and self.waiting == False:
-			
 						self.logAction(time.time(), "rewarded_poke")
 						h20reward(float(self.reward_time_entry.entryString.get()))
 						self.rewards += 1
@@ -524,7 +530,6 @@ class App(Frame):
 						self.primed = False
 						self.resetTrial()
 					elif self.trial_running == False:
-			
 						self.logAction(time.time(), "unrewarded_poke")
 						self.resetTrial()
 				##update reward count
