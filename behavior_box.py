@@ -46,7 +46,7 @@ outputs = {
 "led":20,
 "buzz_1":6, ##push pin for buzzer
 "buzz_2":5,  ##pull pin for buzzer
-"start_trigger":4
+"start_trigger":18
 }
 
 
@@ -76,7 +76,10 @@ for key in inputs.keys():
 
 for key in outputs.keys():
 	pi.setup(outputs[key], pi.OUT)
-	pi.output(outputs[key],False)
+	if key == "start_trigger":
+		pi.output(outputs[key], True)
+	else:
+		pi.output(outputs[key],False)
 
 ##set the pull up resistor for the levers
 pi.setup([17,27],pi.IN, pull_up_down = pi.PUD_DOWN)
@@ -128,9 +131,11 @@ def lightswitch(state):
 ##to trigger plexon start recording;
 
 def plex_trigger(channel):
-	pi.output(channel, True)
+	pi.output(channel, False)
 	##requires 5V trigger for at least 250 ms
 	time.sleep(0.05)
+	pi.output(channel, True)
+	time.sleep(0.1)
 	pi.output(channel, False)
 
 
