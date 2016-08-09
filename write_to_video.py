@@ -26,18 +26,16 @@ vs = VideoStream(usePiCamera=args["picamera"] > 0).start()
 time.sleep(2.0)
 
 # initialize the FourCC, video writer, dimensions of the frame, and
-# zeros array
 fourcc = cv2.VideoWriter_fourcc(*args["codec"])
 writer = None
 (h, w) = (None, None)
-zeros = None
 
 # loop over frames from the video stream
 while True:
 	# grab the frame from the video stream and resize it to have a
 	# maximum width of 300 pixels
 	frame = vs.read()
-	frame = imutils.resize(frame, width=720)
+	frame = imutils.resize(frame, width=1280)
 
 	# check if the writer is None
 	if writer is None:
@@ -46,13 +44,13 @@ while True:
 		(h, w) = frame.shape[:2]
 		writer = cv2.VideoWriter(args["output"], fourcc, args["fps"],
 			(w, h), True)
-		zeros = np.zeros((h, w), dtype="uint8")
 
 	# write the output frame to file
 	writer.write(frame)
 
 	# show the frames
 	cv2.imshow("Frame", frame)
+	cv2.imshow("Output", output)
 	key = cv2.waitKey(1) & 0xFF
 
 	# if the `q` key was pressed, break from the loop
