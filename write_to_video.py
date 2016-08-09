@@ -37,7 +37,7 @@ while True:
 	# grab the frame from the video stream and resize it to have a
 	# maximum width of 300 pixels
 	frame = vs.read()
-	frame = imutils.resize(frame, width=300)
+	frame = imutils.resize(frame, width=720)
 
 	# check if the writer is None
 	if writer is None:
@@ -45,32 +45,14 @@ while True:
 		# and construct the zeros array
 		(h, w) = frame.shape[:2]
 		writer = cv2.VideoWriter(args["output"], fourcc, args["fps"],
-			(w * 2, h * 2), True)
+			(w, h), True)
 		zeros = np.zeros((h, w), dtype="uint8")
 
-	# break the image into its RGB components, then construct the
-	# RGB representation of each frame individually
-	(B, G, R) = cv2.split(frame)
-	R = cv2.merge([zeros, zeros, R])
-	G = cv2.merge([zeros, G, zeros])
-	B = cv2.merge([B, zeros, zeros])
-
-	# construct the final output frame, storing the original frame
-	# at the top-left, the red channel in the top-right, the green
-	# channel in the bottom-right, and the blue channel in the
-	# bottom-left
-	output = np.zeros((h * 2, w * 2, 3), dtype="uint8")
-	output[0:h, 0:w] = frame
-	output[0:h, w:w * 2] = R
-	output[h:h * 2, w:w * 2] = G
-	output[h:h * 2, 0:w] = B
-
 	# write the output frame to file
-	writer.write(output)
+	writer.write(frame)
 
 	# show the frames
 	cv2.imshow("Frame", frame)
-	cv2.imshow("Output", output)
 	key = cv2.waitKey(1) & 0xFF
 
 	# if the `q` key was pressed, break from the loop
