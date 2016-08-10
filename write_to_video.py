@@ -86,16 +86,16 @@ while pi.input(SESSION_START):
 		# and construct the zeros array
 		(h, w) = frame1.shape[:2]
 		writer = cv2.VideoWriter(args["output"], fourcc, args["fps"],
-			(w, h*2), True)
+			(w*2, h), True)
 		zeros = np.zeros((h, w), dtype="uint8")
 
 	# construct the final output frame, storing the original frame
 	# at the top-left, the red channel in the top-right, the green
 	# channel in the bottom-right, and the blue channel in the
 	# bottom-left
-	output = np.zeros((h * 2, w, 3), dtype="uint8")
+	output = np.zeros((h, w*2, 3), dtype="uint8")
 	output[0:h, 0:w] = frame1
-	output[h:h * 2, 0:w] = frame2
+	output[0:h, w:w*2] = frame2
 
 	# write the output frame to file
 	writer.write(output)
