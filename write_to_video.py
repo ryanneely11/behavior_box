@@ -14,7 +14,7 @@ ap.add_argument("-o", "--output", required=True,
 	help="path to output video file")
 ap.add_argument("-f", "--fps", type=int, default=32,
 	help="FPS of output video")
-ap.add_argument("-c", "--codec", type=str, default="MJPG",
+ap.add_argument("-c", "--codec", type=str, default="XVID",
 	help="codec of output video")
 ap.add_argument("-a", "--animal", type=str, default="AnimalX",
 	help="name of animal being recorded")
@@ -47,9 +47,9 @@ def check_trial():
 # initialize the video stream and allow the camera
 # sensor to warmup
 print("[INFO] warming up cameras...")
-vs1 = VideoStream(src=0, usePiCamera=False, resolution=(800,600),
+vs1 = VideoStream(src=0, usePiCamera=False, resolution=(1024,780),
                   framerate=args["fps"]).start()
-vs2 = VideoStream(src=1, usePiCamera=False, resolution=(800,600),
+vs2 = VideoStream(src=1, usePiCamera=False, resolution=(1024,780),
                   framerate=args["fps"]).start()
 time.sleep(2.0)
 
@@ -101,7 +101,7 @@ while pi.input(SESSION_START):
 	writer.write(output)
 
 	# show the frames
-	cv2.imshow("Output", output)
+	#cv2.imshow("Output", output)
 	key = cv2.waitKey(1) & 0xFF
 
 	# if the `q` key was pressed, break from the loop
