@@ -457,7 +457,7 @@ class App(Frame):
 		self.trial_running = False
 		lightswitch("off")
 		buzzer()
-		pi.outputs(['video_trial'], False)
+		pi.output(outputs['video_trial'], False)
 		if port_name == self.rewarded:
 			if np.random.random() <= float(self.reward_rate_entry.entryString.get()):
 				self.primed = True
