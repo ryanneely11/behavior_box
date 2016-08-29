@@ -39,22 +39,35 @@ inputs = {
 "nose_poke":26,
 "top_lever":17,
 "bottom_lever":27,
-"Recording":25
 }
 
 outputs = {
 "h20":13,
 "led":20,
-"C1":12, #C1 = bitmask 2 (on TDT)
-"C3":23, #C3 = bitmask 8
-"C5":24, #C5 = bitmask 32
 "buzz_1":6, ##push pin for buzzer
-"buzz_2":5  ##pull pin for buzzer
+"buzz_2":5,  ##pull pin for buzzer
+"start_trigger":18, ##to start plexon recording
+"video_trigger":22,  ##to start video capture
+"video_trial":16, ##to signal the start of a trial to the video recorder
 }
 
+
+"""
+Current mapping from pi to Plexon:
+pi:			plexon:
+
+pin 12		Event16 
+pin 16		Event13 
+pin 22		Event05  
+pin 25		Event3
+pin 23		Event4
+pin 19		Event7
+pin 18		Event12
+
+"""
+
 ##outputs to exclude from the GUI (no point to have them):
-exclude_out = ["C1", "C3", "C5", "buzz_1", "buzz_2"]
-exclude_in = ["Recording"]
+exclude_out = ["buzz_1", "buzz_2","led","start_trigger", "video_trigger"]
 
 ##set up the GPIO board to the appropriate settings
 pi.setmode(pi.BCM) #to use the BCM pin mapping
@@ -65,7 +78,10 @@ for key in inputs.keys():
 
 for key in outputs.keys():
 	pi.setup(outputs[key], pi.OUT)
-	pi.output(outputs[key],False)
+	if key == "start_trigger":
+		pi.output(outputs[key], True)
+	else:
+		pi.output(outputs[key],False)
 
 ##set the pull up resistor for the levers
 pi.setup([17,27],pi.IN, pull_up_down = pi.PUD_DOWN)
@@ -113,6 +129,16 @@ def lightswitch(state):
 		pi.output(outputs['led'], True)
 	elif state == "off":
 		pi.output(outputs['led'], False)
+
+##to trigger plexon start recording;
+
+def plex_trigger(channel):
+	pi.output(channel, False)
+	##requires 5V trigger for at least 250 ms
+	time.sleep(0.05)
+	pi.output(channel, True)
+	time.sleep(0.1)
+	pi.output(channel, False)
 
 
 ###gui stuff###
@@ -289,7 +315,30 @@ class GPIO(Frame):
 			the state of an output port"""
 		return pi.input(self.pin)
 
+class statusLabel(Frame):
+	def __init__(self, parent, name):
+		self.name = name
+		self.state = False
+		Frame.__init__(self,parent,width=250,height=150,bd=1,padx=5,pady=5)
+		self.parent = parent
+#		self.configure(**kw)
+		self.cmdState = IntVar()
+		self.label = Label(self, text = self.name, font = myFont)
+		self.led = LED(self, 50)
+		self.label.grid(column = 0, row = 0)
+		self.led.grid(column = 2, row = 0)
 
+	def toggleState(self, status):
+		"""updates state and LED
+		"""
+		self.state = status
+		self.updateLED()
+
+	def updateLED(self):
+		if self.state:
+			self.led.set(True)
+		else:
+			self.led.set(False)
 
 class entryBox(object):
 	"""Tkinter object that contains some editable text"""
@@ -325,7 +374,7 @@ class App(Frame):
 
 		## Get the RPI Hardware dependant list of GPIO
 		#gpio = self.getRPIVersionGPIO()
-		for n, key in enumerate([n for n in inputs.keys() if n not in exclude_in]):
+		for n, key in enumerate(inputs.keys()):
 			self.ports.append(GPIO(self,pin=inputs[key],name=key))
 			self.ports[-1].grid(row=n, column=0)
 		for n, key in enumerate([n for n in outputs.keys() if n not in exclude_out]):
@@ -334,9 +383,9 @@ class App(Frame):
 		
 
 		###entry boxes for setting reward parameters
-		self.reward_time_entry = entryBox(self, "Reward time", "1.0", 1,1)
-		self.reward_rate_entry = entryBox(self, "Reward chance", "0.75",3,1)
-		self.ITI_entry = entryBox(self, "inter-trial-interval", "6",5,1)
+		self.reward_time_entry = entryBox(self, "Reward time", "2.5", 1,1)
+		self.reward_rate_entry = entryBox(self, "Reward chance", "0.85",3,1)
+		self.ITI_entry = entryBox(self, "inter-trial-interval", "2",5,1)
 
 		#other objects for setting task params
 		self.selectLever = Spinbox(self, values = ("top_lever", "bottom_lever"),font=myFont, wrap = True, command = self.setLevers)
@@ -352,10 +401,12 @@ class App(Frame):
 		"""a function to set the rewarded and unrewarded levers"""
 		if self.selectLever.get() == "top_lever":
 			self.rewarded = "top_lever"
+
 			self.unrewarded = "bottom_lever"
 		elif self.selectLever.get() == "bottom_lever":
 			self.rewarded = "bottom_lever"
 			self.unrewarded = "top_lever"
+
 		self.logAction(time.time(), "rewarded="+self.selectLever.get())
 
 	def counterReset(self):
@@ -368,12 +419,18 @@ class App(Frame):
 		if self.active.get() == True:
 			##set the start time
 			self.startTime = time.time()
+			##trigger the ephys recording
+			plex_trigger(outputs["start_trigger"])
+			##trigger the video recording
+			pi.output(outputs['video_trigger'], True)
 			self.newTrialStart = self.startTime+(abs(np.random.randn())*float(self.ITI_entry.entryString.get()))
 			self.waiting = True
 			self.setLevers()
 			self.counterReset()
 		elif self.active.get() == False:
 			self.logAction(time.time(), "session_end")
+			##stop the video recording
+			pi.output(outputs['video_trigger'],False)
 
 	def logAction(self, timestamp, label):
 		"""function to log the timestamp of a particular action"""
@@ -389,6 +446,7 @@ class App(Frame):
 	def initTrial(self):
 		"""function to start a new trial"""
 		self.logAction(time.time(), "trial_begin")
+		pi.output(outputs['video_trial'], True)
 		self.trial_running = True
 		lightswitch("on")
 		buzzer2()
@@ -399,11 +457,14 @@ class App(Frame):
 		self.trial_running = False
 		lightswitch("off")
 		buzzer()
+		pi.output(outputs['video_trial'], False)
 		if port_name == self.rewarded:
 			if np.random.random() <= float(self.reward_rate_entry.entryString.get()):
 				self.primed = True
+		
 				self.logAction(time.time(),"reward_primed")
 		else:
+	
 			self.logAction(time.time(),"reward_idle")
 
 	def resetTrial(self):
@@ -423,7 +484,7 @@ class App(Frame):
 			if self.rewards in self.switch:
 				if self.selectLever.get() == "top_lever":
 					self.selectLever.invoke("buttonup")
-					self.setLevers()
+#					self.setLevers()
 				elif self.selectLever.get() == "bottom_lever":
 					self.selectLever.invoke("buttondown")
 
@@ -449,11 +510,13 @@ class App(Frame):
 				"""check for active inputs and log them"""
 				##top lever
 				if port.name == "top_lever" and port.state ==True:
+		
 					self.logAction(time.time(), "top_lever")
 					if self.trial_running:
 						self.endTrial(port.name)
 				##bottom lever
 				if port.name == "bottom_lever" and port.state == True:
+		
 					self.logAction(time.time(), "bottom_lever")
 					if self.trial_running:
 						self.endTrial(port.name)
@@ -461,8 +524,8 @@ class App(Frame):
 				if port.name == "nose_poke" and port.state == True:
 					#self.logAction(time.time(), "nose_poke")
 					if self.trial_running == False and self.primed == True and self.waiting == False:
-						h20reward(float(self.reward_time_entry.entryString.get()))
 						self.logAction(time.time(), "rewarded_poke")
+						h20reward(float(self.reward_time_entry.entryString.get()))
 						self.rewards += 1
 						self.leverSwitch()
 						self.primed = False
@@ -507,9 +570,9 @@ class App2(Frame):
 		
 
 		###entry boxes for setting reward parameters
-		self.reward_time_entry = entryBox(self, "Reward time", "1.0", 1,1)
-		self.reward_rate_entry = entryBox(self, "Reward chance", "0.75",3,1)
-		self.ITI_entry = entryBox(self, "inter-trial-interval", "6",5,1)
+		self.reward_time_entry = entryBox(self, "Reward time", "2.5", 1,1)
+		self.reward_rate_entry = entryBox(self, "Reward chance", "0.85",3,1)
+		self.ITI_entry = entryBox(self, "inter-trial-interval", "2",5,1)
 
 		#other objects for setting task params
 		self.setActive = Checkbutton(self,text="Activate box",font = myFont,variable=self.active, command = self.activate)
@@ -635,6 +698,8 @@ class App3(Frame):
 		self.fileout = open(FILEPATH, 'w')##file to save the timestamps
 		self.rewards = 0 ##count number of rewards given
 		self.switch = switch ##list of reward counts at which to switch the rewarded lever
+		##set up the TDT_input pin
+		pi.setup(TDT_trigger, pi.IN)
 
 		## Get the RPI Hardware dependant list of GPIO
 		#gpio = self.getRPIVersionGPIO()
@@ -658,8 +723,18 @@ class App3(Frame):
 		#self.setActive.grid(row = 5, column = 0)
 		self.resetCounts = Button(self, text = "Reset Counts", font=myFont, command = self.counterReset)
 		self.resetCounts.grid(row = 6, column = 0)
+		##to monitor recording state
+		self.recordingState = statusLabel(self, "Recording")
+		self.recordingState.grid(row = 5, column = 0)
 
 		self.update()
+
+	def check_trigger(self):
+		TDT_state = pi.input(TDT_trigger)
+		if TDT_state != self.active.get():
+			self.active.set(TDT_state)
+			self.activate()
+			self.recordingState.toggleState(self.active.get())			
 
 	def setLevers(self):
 		"""a function to set the rewarded and unrewarded levers"""
@@ -756,9 +831,7 @@ class App3(Frame):
 		for port in self.ports:
 			port.updateInput()
 			##look for a signal from the TDT that the state has changed
-			if port.name == "Recording" and port.state != self.active.get():
-				self.active.set(port.state)
-				self.activate()
+			self.check_trigger()
 			##check to see if the box is active
 			if self.active.get():
 				##check timing stuff
