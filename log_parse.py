@@ -37,15 +37,8 @@ def parse_log(f_in):
 	"unrewarded_poke":[]
 	}
 	##run through each line in the log
-	current_line = f.readline()
-	while current_line != '':
-		##figure out where the comma is that separates
-		##the timestamp and the event label
-		comma_idx = current_line.index(',')
-		##the timestamp is everything in front of the comma
-		timestamp = current_line[:comma_idx]
-		##the label is everything after but not the return character
-		label = current_line[comma_idx+1:-1]
+	label, timestamp = read_line(f.readline())
+	while  label is not None:
 		##now just put the timestamp in it's place!
 		if label == "rewarded=top_lever":
 			results['top_rewarded'].append(float(timestamp))
@@ -70,9 +63,24 @@ def parse_log(f_in):
 		else:
 			print "unknown label: " + label
 		##go to the next line
-		current_line = f.readline()
+		label, timestamp = read_line(f.readline())
 	f.close()
 	return results
+
+##a sub-function to parse a single line in a log, 
+##and return the timestamp and label components seperately
+def read_line(string):
+	label = None
+	timestamp = None
+	if string is not '':
+		##figure out where the comma is that separates
+		##the timestamp and the event label
+		comma_idx = string.index(',')
+		##the timestamp is everything in front of the comma
+		timestamp = string[:comma_idx]
+		##the label is everything after but not the return character
+		label = string[comma_idx+1:-1]
+	return label, timestamp
 
 
 def gauss_convolve(array, sigma):
@@ -353,4 +361,33 @@ def offset_log_ts(h5_file, offset):
 	f.close()
 
 
+
+##a function that generates a 3-D array, where one column is actions
+##one is outcome and the other is the timestamp. This is a different way of parsing
+##the log files. 
+def generate_ao_list(f_in):
+	##open the file
+	f = open(f_in, 'r')
+	##set up the results list
+	actions = []
+	outcomes = []
+
+
+##a sub-function to get all the events that take place within each trial in a session
+def get_trial_sets(f_in):
+	##open the file
+	f = open(f_in, 'r')
+	##set up a list to store the trial lists
+	trials = []
+	label, timestamp = read_line(f.readline())
+	while label is not None:
+		##look for the start of a new trial
+		if label == "trial_begin":
+			##create a new trial list
+			trial = []
+			trial.append([label, timestamp])
+			label, timestamp = read_line(f.readline())
+			while label != None and label != "trial_begin":
+				trial.append([label, timestamp])
+				label, timestamp = read_line(f.readline())
 
