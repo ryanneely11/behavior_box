@@ -390,4 +390,8 @@ def get_trial_sets(f_in):
 			while label != None and label != "trial_begin":
 				trial.append([label, timestamp])
 				label, timestamp = read_line(f.readline())
+			trials.append(trial)
+		label, timestamp = read_line(f.readline())
+	f.close()
+	return trials
 
