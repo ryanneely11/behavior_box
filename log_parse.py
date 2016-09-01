@@ -368,30 +368,65 @@ def offset_log_ts(h5_file, offset):
 def generate_ao_list(f_in):
 	##open the file
 	f = open(f_in, 'r')
-	##set up the results list
+	##set up lists to store actions and outcomes
 	actions = []
 	outcomes = []
-
-
-##a sub-function to get all the events that take place within each trial in a session
-def get_trial_sets(f_in):
-	##open the file
-	f = open(f_in, 'r')
-	##set up a list to store the trial lists
-	trials = []
+	times = []
+	##set up lists to store the label and timestamps
+	labels = []
+	timestamps = []
+	##create two separate lists of the labels and t-stamps.
+	##having these things as numpy objects is easier than working
+	##with the file object
 	label, timestamp = read_line(f.readline())
 	while label is not None:
-		##look for the start of a new trial
-		if label == "trial_begin":
-			##create a new trial list
-			trial = []
-			trial.append([label, timestamp])
-			label, timestamp = read_line(f.readline())
-			while label != None and label != "trial_begin":
-				trial.append([label, timestamp])
-				label, timestamp = read_line(f.readline())
-			trials.append(trial)
+		labels.append(label)
+		timestamps.append(timestamp)
 		label, timestamp = read_line(f.readline())
-	f.close()
-	return trials
+	labels = np.asarray(labels)
+	timestamps = np.asarray(timestamps)
+	##get an array that has the indices of all the trial starts
+	trial_starts = np.where(labels=="trial_begin")[0]
+	##get each trial set
+	for i in range(trial_starts.size - 1):
+		trial_set = labels[trial_starts[i]:trial_starts[i+1]]
+		ts_set = timestamps[trial_starts[i]:trial_starts[i+1]]
+		##now parse the actions that took place in this one trial
+		##assume that a lever press MUST be the next logged action
+		##following the start of a trial (and of course the first action
+		##in this list will be trial_begin)
+		##get rid of the trial_start label/timestamp
+		trial_set = np.delete(trial_set, 0)
+		ts_set = np.delete(ts_set, 0)
+		assert trial_set[0] == "bottom_lever" or trial_set[0] == "top_lever"
+		##this first press that occurs after the start of the trial is the action
+		actions.append(trial_set[0])
+		times.append(ts_set[0])
+		##now get rid of this log event too
+		trial_set = np.delete(trial_set,0)
+		ts_set = np.delete(ts_set,0)
+		##next question: was this a rewarded trial or not?
+		##if "rewarded_poke" is in the set somewhere, then it was:
+		if "rewarded_poke" in trial_set:
+			outcomes.append("reward")
+		##if the trial ended without a rewarded poke, it wasn't rewarded!
+		else:
+			outcomes.append("no_reward")
+		##it is also possible that there were some presses in the trial that 
+		##were "errors;" ie they occurred after the original action, but
+		#before the animal checked the port. Let's log these as "errors":
+		extra_top = np.where(trial_set == "top_lever")[0]
+		extra_bottom = np.where(trial_set == "bottom_lever")[0]
+		if len(extra_top) != 0:
+			for idx in extra_top:
+				actions.append(trial_set[idx])
+				times.append(ts_set[idx])
+				outcomes.append("error")
+		if len(extra_bottom) != 0:
+			for idx in extra_top:
+				actions.append(trial_set[idx])
+				times.append(ts_set[idx])
+				outcomes.append("error")
+
+	return np.asarray((actions,outcomes,times))
 
